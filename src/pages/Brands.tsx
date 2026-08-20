@@ -23,8 +23,8 @@ export default function Brands() {
   return (
     <div className="pt-24 min-h-screen">
       <SEO 
-        title="Electrical Brands in Rourkela | Sai Enterprises"
-        description="Explore electrical brands and products available at Sai Enterprises near TCI Chowk, Rourkela."
+        title="Authorized Electrical Brands & PM CONA Dealer in Rourkela | Sai Enterprises"
+        description="Explore authorized electrical brands at Sai Enterprises Rourkela. Authorized dealer for PM CONA, Havells, Polycab, Finolex & Anchor at wholesale prices."
       />
       {/* Hero Section */}
       <Section className="relative overflow-hidden pt-12 pb-20">

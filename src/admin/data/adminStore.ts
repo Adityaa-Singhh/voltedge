@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { formatDateTime } from '../../utils/dateUtils';
 import { 
   collection, doc, onSnapshot, query, orderBy, limit, startAfter, getDocs,
-  DocumentSnapshot, setDoc, serverTimestamp, writeBatch
+  DocumentSnapshot, setDoc, deleteDoc, serverTimestamp, writeBatch
 } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { COLLECTIONS } from '../../lib/firestore-types';
@@ -40,6 +40,8 @@ import {
   updateEnquiryStatus as updateEnquiryStatusInFirestore,
   addEnquiryNote as addEnquiryNoteInFirestore
 } from '../../services/enquiryService';
+import { subscribeToDailyAnalytics } from '../../services/analyticsService';
+import { type DailyAnalytics } from '../../lib/firestore-types';
 import { 
   products as initialProducts, 
   categories as initialCategories, 
@@ -93,19 +95,6 @@ export interface HomepageContent {
   guaranteeSubtitle: string;
 }
 
-const INITIAL_ACTIVITIES: AdminActivityItem[] = [
-  {
-    id: 'act-1',
-    userName: 'Suresh Sharma',
-    userRole: 'OWNER',
-    action: 'Updated Product Stock',
-    resource: 'PMCona 6A One Way Switch',
-    timestamp: '15 mins ago',
-    details: 'Changed inventory status to IN_STOCK (qty 240 units)',
-    status: 'SUCCESS'
-  }
-];
-
 const INITIAL_HOMEPAGE_CONTENT: HomepageContent = {
   announcementText: 'Authorized Wholesale & Retail Distributor of PMCona, Havells & Polycab',
   announcementLinkText: 'View Catalogue',
@@ -131,6 +120,7 @@ interface AdminStoreContextType {
   businessInfo: typeof initialBusinessInfo;
   homepageContent: HomepageContent;
   activities: AdminActivityItem[];
+  dailyAnalytics: DailyAnalytics[];
   hasMoreEnquiries: boolean;
   
   // Actions
@@ -157,6 +147,7 @@ interface AdminStoreContextType {
   loadMoreEnquiries: () => Promise<void>;
   resetToFactoryDefaults: () => Promise<void>;
   logActivity: (action: string, resource: string, details?: string, status?: 'SUCCESS' | 'WARNING' | 'INFO') => void;
+  clearActivities: () => void;
 }
 
 const AdminStoreContext = createContext<AdminStoreContextType | undefined>(undefined);
@@ -172,9 +163,20 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [faqs, setFaqs] = useState<FAQ[]>(initialFaqs);
   const [businessInfo, setBusinessInfo] = useState<typeof initialBusinessInfo>(initialBusinessInfo);
   const [homepageContent, setHomepageContent] = useState<HomepageContent>(INITIAL_HOMEPAGE_CONTENT);
+  const [dailyAnalytics, setDailyAnalytics] = useState<DailyAnalytics[]>([]);
   const [activities, setActivities] = useState<AdminActivityItem[]>(() => {
     const saved = localStorage.getItem(KEY_ACTIVITIES);
-    return saved ? JSON.parse(saved) : INITIAL_ACTIVITIES;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed)
+          ? parsed.filter((a: AdminActivityItem) => a.userName !== 'Suresh Sharma')
+          : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   });
 
   // Pagination for enquiries
@@ -182,10 +184,22 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [lastEnquiryDoc, setLastEnquiryDoc] = useState<DocumentSnapshot | null>(null);
   const [hasMoreEnquiries, setHasMoreEnquiries] = useState(true);
 
+  // Sync daily analytics
+  useEffect(() => {
+    return subscribeToDailyAnalytics(90, (data) => {
+      setDailyAnalytics(data);
+    });
+  }, []);
+
   // Sync activities locally
   useEffect(() => {
     localStorage.setItem(KEY_ACTIVITIES, JSON.stringify(activities));
   }, [activities]);
+
+  const clearActivities = () => {
+    setActivities([]);
+    localStorage.removeItem(KEY_ACTIVITIES);
+  };
 
   // Activity Logger
   const logActivity = (action: string, resource: string, details?: string, status: 'SUCCESS' | 'WARNING' | 'INFO' = 'SUCCESS') => {
@@ -255,7 +269,17 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
       const activeInitial = initialProducts.filter(p => !deletedIds.includes(p.id));
       const activeProds = prods.filter(p => !deletedIds.includes(p.id));
-      setProducts(snapshot.empty ? activeInitial : activeProds);
+      
+      // Deduplicate products by slug
+      const uniqueProdMap = new Map<string, Product>();
+      for (const p of (snapshot.empty ? activeInitial : activeProds)) {
+        if (p.slug && !uniqueProdMap.has(p.slug)) {
+          uniqueProdMap.set(p.slug, p);
+        } else if (!p.slug && !uniqueProdMap.has(p.id)) {
+          uniqueProdMap.set(p.id, p);
+        }
+      }
+      setProducts(Array.from(uniqueProdMap.values()));
     });
   }, []);
 
@@ -263,19 +287,38 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     return onSnapshot(query(collection(db, COLLECTIONS.CATEGORIES), orderBy('sortOrder', 'asc')), (snapshot) => {
       const deletedIds = getDeletedIds(KEY_DELETED_CATS);
-      const cats = snapshot.docs.map(docSnap => {
+      const seenSlugs = new Set<string>();
+      const duplicateDocIds: string[] = [];
+
+      const cats: Category[] = [];
+      snapshot.docs.forEach(docSnap => {
         const data = docSnap.data();
-        return {
+        const slug = data.slug || '';
+        if (slug && seenSlugs.has(slug)) {
+          duplicateDocIds.push(docSnap.id);
+          return;
+        }
+        if (slug) seenSlugs.add(slug);
+
+        cats.push({
           id: docSnap.id,
           name: data.name || '',
-          slug: data.slug || '',
+          slug: slug,
           description: data.description || '',
           icon: data.icon || 'ToggleRight',
           productCount: data.productCount || 0,
           image: data.image || '',
           active: data.active ?? true
-        } as Category;
+        } as Category);
       });
+
+      // Auto-prune duplicate documents in Firestore in background
+      if (duplicateDocIds.length > 0) {
+        duplicateDocIds.forEach(dupId => {
+          deleteDoc(doc(db, COLLECTIONS.CATEGORIES, dupId)).catch(() => {});
+        });
+      }
+
       const activeInitial = initialCategories.filter(c => !deletedIds.includes(c.id));
       const activeCats = cats.filter(c => !deletedIds.includes(c.id));
       setCategories(snapshot.empty ? activeInitial : activeCats);
@@ -286,20 +329,39 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     return onSnapshot(query(collection(db, COLLECTIONS.BRANDS), orderBy('sortOrder', 'asc')), (snapshot) => {
       const deletedIds = getDeletedIds(KEY_DELETED_BRANDS);
-      const brs = snapshot.docs.map(docSnap => {
+      const seenSlugs = new Set<string>();
+      const duplicateDocIds: string[] = [];
+
+      const brs: Brand[] = [];
+      snapshot.docs.forEach(docSnap => {
         const data = docSnap.data();
-        return {
+        const slug = data.slug || '';
+        if (slug && seenSlugs.has(slug)) {
+          duplicateDocIds.push(docSnap.id);
+          return;
+        }
+        if (slug) seenSlugs.add(slug);
+
+        brs.push({
           id: docSnap.id,
           name: data.name || '',
-          slug: data.slug || '',
+          slug: slug,
           logo: data.logo || '',
           description: data.description || '',
           isAuthorized: data.isAuthorized || false,
           categories: data.categories || [],
           tagline: data.tagline || '',
           active: data.active ?? true
-        } as Brand;
+        } as Brand);
       });
+
+      // Auto-prune duplicate brand documents in Firestore in background
+      if (duplicateDocIds.length > 0) {
+        duplicateDocIds.forEach(dupId => {
+          deleteDoc(doc(db, COLLECTIONS.BRANDS, dupId)).catch(() => {});
+        });
+      }
+
       const activeInitial = initialBrands.filter(b => !deletedIds.includes(b.id));
       const activeBrs = brs.filter(b => !deletedIds.includes(b.id));
       setBrands(snapshot.empty ? activeInitial : activeBrs);
@@ -676,16 +738,20 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     localStorage.removeItem(KEY_DELETED_CATS);
     localStorage.removeItem(KEY_DELETED_BRANDS);
 
-    // Delete existing products from Firestore
+    // Delete existing products, categories, and brands from Firestore
     try {
-      const existingProdsSnap = await getDocs(collection(db, COLLECTIONS.PRODUCTS));
+      const [prodsSnap, catsSnap, brandsSnap] = await Promise.all([
+        getDocs(collection(db, COLLECTIONS.PRODUCTS)),
+        getDocs(collection(db, COLLECTIONS.CATEGORIES)),
+        getDocs(collection(db, COLLECTIONS.BRANDS))
+      ]);
       const deleteBatch = writeBatch(db);
-      existingProdsSnap.docs.forEach((docSnap) => {
-        deleteBatch.delete(docSnap.ref);
-      });
+      prodsSnap.docs.forEach(d => deleteBatch.delete(d.ref));
+      catsSnap.docs.forEach(d => deleteBatch.delete(d.ref));
+      brandsSnap.docs.forEach(d => deleteBatch.delete(d.ref));
       await deleteBatch.commit();
     } catch (e) {
-      console.warn('Product cleanup note:', e);
+      console.warn('Database cleanup note:', e);
     }
 
     const batch = writeBatch(db);
@@ -724,10 +790,10 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       updatedAt: serverTimestamp()
     });
 
-    // Seed Categories
+    // Seed Categories with deterministic IDs
     for (let i = 0; i < initialCategories.length; i++) {
       const cat = initialCategories[i];
-      const catRef = doc(collection(db, COLLECTIONS.CATEGORIES));
+      const catRef = doc(db, COLLECTIONS.CATEGORIES, cat.slug || `cat-${i}`);
       batch.set(catRef, {
         name: cat.name,
         slug: cat.slug,
@@ -737,16 +803,16 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         featured: i < 5,
         active: true,
         sortOrder: i + 1,
-        productCount: cat.productCount || 10,
+        productCount: cat.productCount || 0,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
     }
 
-    // Seed Brands
+    // Seed Brands with deterministic IDs
     for (let i = 0; i < initialBrands.length; i++) {
       const b = initialBrands[i];
-      const bRef = doc(collection(db, COLLECTIONS.BRANDS));
+      const bRef = doc(db, COLLECTIONS.BRANDS, b.slug || `brand-${i}`);
       batch.set(bRef, {
         name: b.name,
         slug: b.slug,
@@ -764,7 +830,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     await batch.commit();
-    logActivity('Reset Database', 'Restored initial store seed data', '', 'WARNING');
+    logActivity('Reset Database', 'Restored initial store seed data cleanly', '', 'WARNING');
   };
 
   return React.createElement(
@@ -781,6 +847,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         businessInfo,
         homepageContent,
         activities,
+        dailyAnalytics,
         hasMoreEnquiries,
         addProduct,
         updateProduct,
@@ -804,7 +871,8 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updateHomepageContent,
         loadMoreEnquiries,
         resetToFactoryDefaults,
-        logActivity
+        logActivity,
+        clearActivities
       }
     },
     children

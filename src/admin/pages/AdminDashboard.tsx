@@ -29,12 +29,28 @@ import { useAuth } from '../context/AuthContext';
 import { formatDateTime } from '../../utils/dateUtils';
 
 export const AdminDashboard: React.FC = () => {
-  const { products, categories, brands, enquiries, activities, updateEnquiryStatus } = useAdminStore();
+  const { products, categories, brands, enquiries, activities, dailyAnalytics, updateEnquiryStatus } = useAdminStore();
   const { userProfile } = useAuth();
 
   const newEnquiries = enquiries.filter(e => e.status === 'NEW');
   const pendingEnquiries = enquiries.filter(e => e.status === 'CONTACTED' || e.status === 'IN_PROGRESS');
   const resolvedEnquiries = enquiries.filter(e => e.status === 'RESOLVED' || e.status === 'CLOSED');
+
+  // Compute live aggregates from dailyAnalytics
+  const totalMonthlyPageViews = dailyAnalytics.reduce((sum, d) => sum + (d.pageViews || 0), 0);
+  const totalMonthlyUniqueVisitors = dailyAnalytics.reduce((sum, d) => sum + (d.uniqueVisitors || 0), 0);
+  const totalWhatsAppClicks = dailyAnalytics.reduce((sum, d) => sum + (d.whatsappClicks || 0), 0);
+  const totalMobile = dailyAnalytics.reduce((sum, d) => sum + (d.deviceMobile || 0), 0);
+  const totalDevices = dailyAnalytics.reduce((sum, d) => sum + (d.deviceMobile || 0) + (d.deviceDesktop || 0) + (d.deviceTablet || 0), 0);
+  const mobilePercent = totalDevices > 0 ? Math.round((totalMobile / totalDevices) * 100) : 80;
+
+  const displayVisitors = totalMonthlyUniqueVisitors > 0 
+    ? totalMonthlyUniqueVisitors.toLocaleString() 
+    : (totalMonthlyPageViews > 0 ? totalMonthlyPageViews.toLocaleString() : '1');
+
+  const displayWhatsApp = totalWhatsAppClicks > 0 
+    ? totalWhatsAppClicks.toLocaleString() 
+    : enquiries.filter(e => e.source === 'WhatsApp').length.toLocaleString();
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -151,46 +167,46 @@ export const AdminDashboard: React.FC = () => {
 
         <KPICard
           title="Monthly Visitors"
-          value="14,280"
-          change="+22.1%"
+          value={displayVisitors}
+          change={totalMonthlyPageViews > 0 ? `${totalMonthlyPageViews} hits` : 'Live'}
           isPositive={true}
           icon={Users}
           accentColor="blue"
-          subtitle="74% visiting from mobile devices"
+          subtitle={`${mobilePercent}% mobile traffic`}
         />
 
         <KPICard
           title="WhatsApp Queries"
-          value="2,150"
-          change="+31.4%"
+          value={displayWhatsApp}
+          change="Direct Leads"
           isPositive={true}
           icon={MessageSquare}
           accentColor="emerald"
-          subtitle="Direct WhatsApp quote dispatches"
+          subtitle="Real-time quote dispatches"
         />
       </div>
 
       {/* 3. Primary Charts Grid (Row 1: Traffic & Enquiry Trends) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TrafficAreaChart />
-        <EnquiryTrendChart />
+        <TrafficAreaChart dailyAnalytics={dailyAnalytics} />
+        <EnquiryTrendChart enquiries={enquiries} />
       </div>
 
       {/* 4. Secondary Charts Grid (Row 2: Top Products & Category Performance) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TopProductsBarChart products={products} />
-        <CategoryPerformanceChart categories={categories} products={products} />
+        <TopProductsBarChart products={products} enquiries={enquiries} />
+        <CategoryPerformanceChart categories={categories} products={products} enquiries={enquiries} />
       </div>
 
       {/* 5. Tertiary Charts Grid (Row 3: Sources, Devices & Brand Inquiries) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <TrafficSourcesDonutChart enquiries={enquiries} />
-        <DeviceBreakdownDonutChart />
-        <BrandPerformanceChart brands={brands} products={products} />
+        <DeviceBreakdownDonutChart dailyAnalytics={dailyAnalytics} />
+        <BrandPerformanceChart brands={brands} products={products} enquiries={enquiries} />
       </div>
 
       {/* 6. Conversion Funnel */}
-      <ConversionFunnelChart />
+      <ConversionFunnelChart dailyAnalytics={dailyAnalytics} enquiries={enquiries} />
 
       {/* 7. Bottom Operational Feeds (Recent Enquiries & Admin Audit) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

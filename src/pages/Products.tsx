@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Search, X, Package, SlidersHorizontal, LayoutGrid, List, Check, MessageCircle, ShieldCheck, Loader2 } from 'lucide-react';
 import { Section, SectionHeader, ProductImage, Badge, EmptyState, useScrollReveal } from '../components/ui';
 import { ProductGridCard, ProductListCard } from '../components/ProductCard';
+import { VoiceSearchButton } from '../components/VoiceSearchButton';
 import { getProductEnquiryUrl } from '../data';
 import { usePublicStore } from '../data/publicStore';
 import { getPublishedProductsPaginated } from '../services/productService';
@@ -51,23 +52,20 @@ const Products = () => {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Fetch initial products when filters change
+  // Fetch initial products when category changes
   useEffect(() => {
     let mounted = true;
     const fetchInitial = async () => {
       setLoading(true);
       try {
         const { products: fetchedProducts, lastDoc: newLastDoc, hasMore: newHasMore } = 
-          await getPublishedProductsPaginated(null, selectedCategory, debouncedSearch, 24);
+          await getPublishedProductsPaginated(null, selectedCategory, '', 48);
         
         if (mounted) {
           setProducts(fetchedProducts as Product[]);
           setLastDoc(newLastDoc);
           setHasMore(newHasMore);
           setLoading(false);
-          if (debouncedSearch) {
-            trackSearchQuery(debouncedSearch, fetchedProducts.length);
-          }
         }
       } catch (err) {
         console.error('Failed to load products:', err);
@@ -99,14 +97,14 @@ const Products = () => {
       window.removeEventListener('pageshow', handlePageShow);
       window.removeEventListener('online', handleWakeup);
     };
-  }, [selectedCategory, debouncedSearch]);
+  }, [selectedCategory]);
 
   const loadMore = async () => {
     if (!hasMore || loadingMore) return;
     setLoadingMore(true);
     try {
       const { products: fetchedProducts, lastDoc: newLastDoc, hasMore: newHasMore } = 
-        await getPublishedProductsPaginated(lastDoc, selectedCategory, debouncedSearch, 24);
+        await getPublishedProductsPaginated(lastDoc, selectedCategory, '', 48);
       
       setProducts(prev => [...prev, ...(fetchedProducts as Product[])]);
       setLastDoc(newLastDoc);
@@ -119,16 +117,61 @@ const Products = () => {
   };
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
-      // Name search is handled server-side now (via prefix query), 
-      // but we still do client-side refinement for brand, tags, and category.
-      const matchesSearch = debouncedSearch === '' || 
-        product.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        product.brand.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        product.category.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        (product.tags || []).some((tag: string) => tag.toLowerCase().includes(debouncedSearch.toLowerCase()));
+    const rawSearch = debouncedSearch.trim().toLowerCase();
+    if (rawSearch) {
+      trackSearchQuery(rawSearch, products.length);
+    }
 
-      const matchesBrand = selectedBrand === '' || product.brandSlug === selectedBrand;
+    const tokens = rawSearch.split(/\s+/).filter(Boolean);
+
+    return products.filter((product) => {
+      // 1. Token-Based Multi-Field Case-Insensitive Search
+      const matchesSearch =
+        tokens.length === 0 ||
+        tokens.every((tok) => {
+          const name = (product.name || '').toLowerCase();
+          const brand = (product.brand || '').toLowerCase();
+          const brandSlug = (product.brandSlug || '').toLowerCase();
+          const category = (product.category || '').toLowerCase();
+          const categorySlug = (product.categorySlug || '').toLowerCase();
+          const shortDesc = (product.shortDescription || '').toLowerCase();
+          const desc = (product.description || '').toLowerCase();
+          const tags = (product.tags || []).map((t: string) => t.toLowerCase());
+
+          // Also check specifications
+          let specText = '';
+          if (Array.isArray(product.specifications)) {
+            specText = product.specifications
+              .map((s: any) => `${s.label || ''} ${s.value || ''}`)
+              .join(' ')
+              .toLowerCase();
+          } else if (product.specifications && typeof product.specifications === 'object') {
+            specText = Object.entries(product.specifications)
+              .map(([k, v]) => `${k} ${v}`)
+              .join(' ')
+              .toLowerCase();
+          }
+
+          return (
+            name.includes(tok) ||
+            brand.includes(tok) ||
+            brandSlug.includes(tok) ||
+            category.includes(tok) ||
+            categorySlug.includes(tok) ||
+            shortDesc.includes(tok) ||
+            desc.includes(tok) ||
+            tags.some((t: string) => t.includes(tok)) ||
+            specText.includes(tok)
+          );
+        });
+
+      // 2. Brand Filter
+      const matchesBrand =
+        selectedBrand === '' ||
+        product.brandSlug === selectedBrand ||
+        (product.brand && product.brand.toLowerCase() === selectedBrand.toLowerCase());
+
+      // 3. Stock Filter
       const matchesStock = !inStockOnly || product.inStock;
 
       return matchesSearch && matchesBrand && matchesStock;
@@ -148,8 +191,8 @@ const Products = () => {
   return (
     <div className="pt-24 pb-16 min-h-screen">
       <SEO 
-        title="Electrical Products in Rourkela | Sai Enterprises"
-        description="Explore switches, sockets, wires, cables, electrical accessories and other products available from Sai Enterprises in Rourkela."
+        title="Wholesale Electrical Products & PM CONA Switches in Rourkela | Sai Enterprises"
+        description="Browse wholesale electrical supplies in Rourkela. Authorized dealer for PM CONA modular switches, Havells wires, Polycab cables, DBs, and LED lighting at wholesale rates."
       />
       {/* Header & Hero */}
       <Section className="!pt-8 !pb-4">
@@ -183,7 +226,7 @@ const Products = () => {
               )}
             </button>
 
-            {/* Quick Search Bar (10% Larger) */}
+            {/* Quick Search Bar (with Voice Search) */}
             <div className="relative flex-grow md:w-80">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-volt/80" />
               <input
@@ -191,13 +234,16 @@ const Products = () => {
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 hover:border-white/20 rounded-full pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-volt/60 focus:bg-white/[0.08] transition-all shadow-inner"
+                className="w-full bg-white/5 border border-white/10 hover:border-white/20 rounded-full pl-10 pr-16 py-2.5 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-volt/60 focus:bg-white/[0.08] transition-all shadow-inner"
               />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white" aria-label="Clear search">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="p-1 text-slate-400 hover:text-white" aria-label="Clear search">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <VoiceSearchButton onSearchResult={(text) => setSearchQuery(text)} />
+              </div>
             </div>
           </div>
 

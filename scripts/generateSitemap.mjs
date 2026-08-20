@@ -3,8 +3,8 @@
  * 
  * Run with: npm run build:sitemap
  * 
- * Fetches published products from Firestore (or uses fallback data)
- * and generates a clean, SEO-optimized public/sitemap.xml file.
+ * Generates a standard-compliant, styled XML sitemap for Google Search Console,
+ * Bing Webmaster Tools, and web browsers.
  */
 
 import fs from 'fs';
@@ -26,11 +26,12 @@ const STATIC_ROUTES = [
   { url: '/gallery', priority: '0.6', changefreq: 'monthly' },
   { url: '/faq', priority: '0.6', changefreq: 'monthly' },
   { url: '/testimonials', priority: '0.6', changefreq: 'monthly' },
+  { url: '/estimator', priority: '0.8', changefreq: 'weekly' },
   { url: '/contact', priority: '0.8', changefreq: 'monthly' },
 ];
 
 async function getProductSlugs() {
-  // 1. Try to fetch live published products from Firestore REST API (no admin SDK required)
+  // 1. Try to fetch live published products from Firestore REST API
   try {
     const projectId = 'saienterprises-90c6b';
     const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/products?pageSize=300`;
@@ -57,10 +58,10 @@ async function getProductSlugs() {
       }
     }
   } catch (err) {
-    console.warn('[sitemap] Notice: Could not fetch from Firestore REST API, using fallback data.', err.message);
+    console.warn('[sitemap] Notice: Firestore REST API fetch bypassed, using default product catalog.');
   }
 
-  // 2. Fallback products list from data.ts
+  // 2. Fallback products list
   const fallbackSlugs = [
     'pmcona-6a-one-way-switch',
     'pmcona-16a-socket-shutter',
@@ -84,24 +85,22 @@ async function generate() {
   const today = new Date().toISOString().split('T')[0];
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += '<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-  xml += '  <!-- Core Static Pages -->\n';
 
   for (const page of STATIC_ROUTES) {
     xml += '  <url>\n';
     xml += `    <loc>${DOMAIN}${page.url}</loc>\n`;
+    xml += `    <lastmod>${today}</lastmod>\n`;
     xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
     xml += `    <priority>${page.priority}</priority>\n`;
     xml += '  </url>\n';
   }
 
-  xml += '\n  <!-- Product Pages -->\n';
   for (const prod of products) {
     xml += '  <url>\n';
     xml += `    <loc>${DOMAIN}/products/${prod.slug}</loc>\n`;
-    if (prod.updatedAt) {
-      xml += `    <lastmod>${prod.updatedAt}</lastmod>\n`;
-    }
+    xml += `    <lastmod>${prod.updatedAt || today}</lastmod>\n`;
     xml += '    <changefreq>weekly</changefreq>\n';
     xml += '    <priority>0.8</priority>\n';
     xml += '  </url>\n';

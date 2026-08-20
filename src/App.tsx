@@ -9,6 +9,10 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './admin/context/AuthContext';
 import { AdminStoreProvider } from './admin/data/adminStore';
 import { PublicStoreProvider, usePublicStore } from './data/publicStore';
+import { BOMProvider } from './context/BOMContext';
+import { BOMDrawer, BOMFloatingTrigger } from './components/BOMDrawer';
+import { PWAProvider } from './context/PWAContext';
+import { PWAPrompt } from './components/PWAPrompt';
 import { ProtectedRoute } from './admin/components/ProtectedRoute';
 import { AdminLayout } from './admin/components/AdminLayout';
 import { ElectricCanvas } from './components/ElectricCanvas';
@@ -19,6 +23,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 const HomePage = lazyWithRetry(() => import('./pages/Home'));
 const ProductsPage = lazyWithRetry(() => import('./pages/Products'));
 const ProductDetailPage = lazyWithRetry(() => import('./pages/ProductDetail'));
+const EstimatorPage = lazyWithRetry(() => import('./pages/Estimator'));
 const BrandsPage = lazyWithRetry(() => import('./pages/Brands'));
 const AboutPage = lazyWithRetry(() => import('./pages/About'));
 const GalleryPage = lazyWithRetry(() => import('./pages/Gallery'));
@@ -108,6 +113,7 @@ function PublicLayout() {
               <Route path="/" element={<HomePage onQuote={() => setQuoteOpen(true)} />} />
               <Route path="/products" element={<ProductsPage />} />
               <Route path="/products/:slug" element={<ProductDetailPage />} />
+              <Route path="/estimator" element={<EstimatorPage />} />
               <Route path="/brands" element={<BrandsPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
@@ -122,6 +128,9 @@ function PublicLayout() {
         <Footer />
 
         {quoteOpen && <QuoteModal onClose={() => setQuoteOpen(false)} />}
+        <BOMFloatingTrigger />
+        <BOMDrawer />
+        <PWAPrompt />
       </div>
     </div>
   );
@@ -189,7 +198,11 @@ export default function App() {
                     path="/*" 
                     element={
                       <PublicStoreProvider>
-                        <PublicLayout />
+                        <BOMProvider>
+                          <PWAProvider>
+                            <PublicLayout />
+                          </PWAProvider>
+                        </BOMProvider>
                       </PublicStoreProvider>
                     } 
                   />

@@ -205,10 +205,20 @@ export default function Home({ onQuote }: HomeProps) {
 
   const localBusinessSchema = {
     "@context": "https://schema.org",
-    "@type": "ElectricalStore",
+    "@type": ["WholesaleStore", "LocalBusiness", "ElectricalSupplyStore"],
     "name": businessInfo.fullName || "Sai Enterprises",
-    "description": businessInfo.description || "Premium electrical products supplier and authorized brand dealer serving homeowners, electricians, contractors, and businesses.",
-    "url": "https://saienterprises.in",
+    "alternateName": [
+      "Sai Enterprises PM CONA Dealer",
+      "Sai Enterprises Electrical Wholesale",
+      "PM CONA Dealer Rourkela",
+      "Best Electrical Wholesale Shop Rourkela"
+    ],
+    "description": "Sai Enterprises is Rourkela's premier electrical wholesale dealer & authorized PM CONA dealer. Supplying wholesale modular switches, Havells wires, Polycab cables, LED lighting, distribution boards, and industrial electrical supplies across Rourkela and Odisha.",
+    "url": "https://saienterprises-90c6b.web.app/",
+    "logo": "https://saienterprises-90c6b.web.app/favicon-512x512.png",
+    "priceRange": "₹₹",
+    "currenciesAccepted": "INR",
+    "paymentAccepted": "Cash, UPI, Credit Card, Bank Transfer, Cheque",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": businessInfo.address.line1 || "Near Bank of India, TCI Chowk",
@@ -216,15 +226,71 @@ export default function Home({ onQuote }: HomeProps) {
       "addressRegion": businessInfo.address.state || "Odisha",
       "postalCode": businessInfo.address.pincode || "769004",
       "addressCountry": "IN"
-    }
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": "22.2270",
+      "longitude": "84.8536"
+    },
+    "areaServed": [
+      "Rourkela",
+      "Sundargarh",
+      "Udit Nagar",
+      "Civil Township",
+      "Panposh",
+      "Birmitrapur",
+      "Kansbahal",
+      "Rajgangpur",
+      "Jharsuguda",
+      "Odisha"
+    ],
+    "knowsAbout": [
+      "PM CONA Modular Switches",
+      "Electrical Wholesale Dealer",
+      "Polycab Wires & Cables",
+      "Havells Switchgear & MCBs",
+      "Distribution Boards & DBs",
+      "Commercial & Residential LED Lighting"
+    ]
+  };
+
+  const homeFaqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Who is the authorized PM CONA dealer in Rourkela?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sai Enterprises is the authorized PM CONA dealer and distributor in Rourkela, Odisha. We supply the complete range of genuine PM CONA modular switches, sockets, cover plates, and electrical accessories at wholesale and project rates."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Where is the best electrical wholesale dealer and shop in Rourkela?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Sai Enterprises, located near Bank of India, TCI Chowk, Rourkela (PIN: 769004), is the top-rated electrical wholesale dealer. We provide bulk supplies for contractors, builders, industrial units, and retail electrical shops with instant quotation support."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How to get wholesale electrical supplies and price list near me in Rourkela?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "You can request an instant wholesale quotation directly through Sai Enterprises website or by messaging our WhatsApp hotline at +91 93374 25278. We deliver across Rourkela, Sundargarh, and nearby Odisha districts."
+        }
+      }
+    ]
   };
 
   return (
     <div className="flex flex-col min-h-screen">
       <SEO 
-        title="Sai Enterprises | Electrical Products in Rourkela"
-        description="Sai Enterprises is an electrical products store near TCI Chowk, Rourkela, offering switches, sockets, wires, cables and electrical accessories from leading brands."
-        jsonLd={localBusinessSchema}
+        title="Sai Enterprises — Wholesale Electrical Dealer & Authorized PM CONA Dealer in Rourkela"
+        description="Sai Enterprises is Rourkela's premier electrical wholesale dealer & authorized PM CONA dealer. Best wholesale shop near you for PM CONA switches, Havells wires, Polycab cables, MCB DBs & LED lighting."
+        jsonLd={[localBusinessSchema, homeFaqSchema]}
       />
       {/* 1. HERO SECTION WITH INTERACTIVE ELECTRIC CANVAS */}
       <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden pt-20 pb-20">
@@ -246,15 +312,21 @@ export default function Home({ onQuote }: HomeProps) {
             className="flex flex-col items-center text-center max-w-5xl mx-auto space-y-8"
           >
             
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.1] text-white">
-              Premium Electrical Products in <br/>
+            {/* Top Local Authority Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-volt/10 border border-volt/30 text-volt text-xs sm:text-sm font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(0,229,255,0.2)]">
+              <Icons.Zap className="w-4 h-4 text-volt animate-pulse" />
+              <span>Wholesale Electrical Dealer & PM CONA Authorized Partner</span>
+            </div>
+
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight leading-[1.1] text-white">
+              Wholesale Electrical Dealer & PM CONA Dealer in <br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-volt via-cyan-400 to-blue-500 drop-shadow-[0_0_25px_rgba(0,229,255,0.3)]">
                 Rourkela, Odisha
               </span>
             </h1>
             
             <p className="text-base sm:text-lg md:text-xl text-slate-300 max-w-3xl leading-relaxed font-normal">
-              Sai Enterprises is your trusted local electrical partner near TCI Chowk, Rourkela (769004). We are authorized brand distributors offering genuine switches, sockets, wires, cables, and accessories.
+              Sai Enterprises is Rourkela's #1 trusted wholesale electrical shop and authorized brand distributor near TCI Chowk (769004). We supply genuine PM CONA switches, Havells wires, Polycab cables, MCBs, DBs, and LED lighting at direct wholesale rates.
             </p>
             
             {/* CTAs */}
@@ -919,6 +991,46 @@ export default function Home({ onQuote }: HomeProps) {
               </a>
             </div>
           </div>
+        </div>
+      </Section>
+
+      {/* 9.5 SEO & FAQ AUTHORITY SECTION */}
+      <Section id="faq" className="bg-dark-1 border-t border-white/5">
+        <SectionHeader 
+          label="Wholesale & Brand FAQs" 
+          title="Frequently Asked Questions" 
+          subtitle="Everything you need to know about our wholesale electrical supply, PM CONA dealership, and project deliveries."
+        />
+
+        <div className="max-w-4xl mx-auto mt-10 space-y-4">
+          {[
+            {
+              q: "Who is the authorized PM CONA dealer in Rourkela?",
+              a: "Sai Enterprises is the premier authorized PM CONA dealer in Rourkela and the Sundargarh district. We provide genuine PM CONA modular switches, sockets, cover plates, regulators, and accessories with manufacturer warranty and direct wholesale pricing."
+            },
+            {
+              q: "Where is the best electrical wholesale dealer and shop in Rourkela?",
+              a: "Sai Enterprises is located near Bank of India, TCI Chowk, Rourkela (PIN: 769004). We are recognized as Rourkela's best electrical wholesale shop, providing bulk supply of Havells, Polycab, Finolex wires, distribution boards, LED lighting, and switchgear for contractors, builders, and electricians."
+            },
+            {
+              q: "How can I order wholesale electrical supplies near me in Rourkela & Odisha?",
+              a: "You can request an instant wholesale quote directly online through our website, or message our direct WhatsApp quotation desk at +91 93374 25278 with your bill of materials. We deliver across Rourkela, Udit Nagar, Panposh, Civil Township, Birmitrapur, Rajgangpur, and Sundargarh."
+            },
+            {
+              q: "Does Sai Enterprises offer bulk contractor and project discounts?",
+              a: "Yes! We specialize in wholesale B2B pricing for builders, electrical contractors, commercial projects, and retail electrical store owners. Volume tiered discounts and instant GST invoices are provided on all orders."
+            }
+          ].map((item, idx) => (
+            <div key={idx} className="glass-card p-6 rounded-2xl border border-white/10 hover:border-volt/40 transition-all">
+              <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-3">
+                <Icons.HelpCircle className="w-5 h-5 text-volt shrink-0" />
+                <span>{item.q}</span>
+              </h3>
+              <p className="text-sm sm:text-base text-slate-300 pl-8 font-normal leading-relaxed">
+                {item.a}
+              </p>
+            </div>
+          ))}
         </div>
       </Section>
 

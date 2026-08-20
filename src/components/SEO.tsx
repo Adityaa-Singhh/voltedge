@@ -7,6 +7,7 @@ interface SEOProps {
   canonical?: string;
   robots?: string;
   ogType?: string;
+  ogImage?: string;
   jsonLd?: Record<string, any> | Record<string, any>[];
 }
 
@@ -16,6 +17,7 @@ export default function SEO({
   canonical,
   robots = 'index, follow',
   ogType = 'website',
+  ogImage,
   jsonLd,
 }: SEOProps) {
   const { pathname } = useLocation();
@@ -46,12 +48,13 @@ export default function SEO({
       <meta property="og:description" content={description} />
       <meta property="og:url" content={canonicalUrl} />
       <meta property="og:type" content={ogType} />
-      <meta property="og:image" content="https://saienterprises-90c6b.web.app/favicon-512x512.png" />
+      {ogImage && <meta property="og:image" content={ogImage} />}
 
       {/* Twitter Card Tags */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
+      {ogImage && <meta name="twitter:image" content={ogImage} />}
 
       {/* JSON-LD Structured Data Injection */}
       {jsonLdArray.map((schema, index) => (

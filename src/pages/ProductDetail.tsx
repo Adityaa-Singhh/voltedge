@@ -1,21 +1,30 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronRight, Check, X, ShieldCheck, Truck, Phone, MessageCircle, Loader2 } from 'lucide-react';
+import { ChevronRight, Check, X, ShieldCheck, Truck, Phone, MessageCircle, Loader2, Plus, Minus, FileText } from 'lucide-react';
 import { getWhatsAppUrl, getPhoneUrl, getProductEnquiryUrl } from '../data';
 import { Section, SectionHeader, ProductImage, Badge, EmptyState, useScrollReveal } from '../components/ui';
 import { getProductBySlug, getPublishedProductsPaginated } from '../services/productService';
 import { trackProductView, trackProductClick, trackWhatsAppClick, trackPhoneCallClick } from '../services/analyticsService';
 import type { FirestoreProduct } from '../lib/firestore-types';
 import SEO from '../components/SEO';
+import { useBOM } from '../context/BOMContext';
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const revealRef = useScrollReveal<HTMLDivElement>();
+  const { items, setItemQuantity } = useBOM();
   
   const [product, setProduct] = useState<FirestoreProduct | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<FirestoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
+  const [orderQty, setOrderQty] = useState(1);
+  const [addedToQuote, setAddedToQuote] = useState(false);
+
+  // Check if this product is already in the customer's BOM list
+  const existingBOMItem = items.find(
+    (i) => (product && i.id === product.id) || (product && i.name.toLowerCase() === product.name.toLowerCase())
+  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -46,23 +55,31 @@ export default function ProductDetail() {
           );
           
           if (mounted) {
-            setRelatedProducts(
-              related.filter(p => p.id !== fetchedProduct.id).slice(0, 4)
-            );
+            setRelatedProducts((related as FirestoreProduct[]).filter(p => p.slug !== slug).slice(0, 4));
+            setLoading(false);
           }
         } else if (mounted) {
-          setProduct(null);
+          setLoading(false);
         }
       } catch (err) {
-        console.error("Failed to load product", err);
-      } finally {
+        console.error('Failed to load product details:', err);
         if (mounted) setLoading(false);
       }
     };
 
     fetchProductData();
-    return () => { mounted = false; };
+
+    return () => {
+      mounted = false;
+    };
   }, [slug]);
+
+  // Sync orderQty to existing BOM quantity once product/items are ready
+  useEffect(() => {
+    if (existingBOMItem && existingBOMItem.quantity > 0) {
+      setOrderQty(existingBOMItem.quantity);
+    }
+  }, [existingBOMItem?.quantity, product?.id]);
 
   if (loading) {
     return (
@@ -207,34 +224,84 @@ export default function ProductDetail() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-10 pb-10 border-b border-white/10">
-                <a
-                  href={getProductEnquiryUrl(product.name)}
-                  onClick={() => trackWhatsAppClick('product_detail_enquire', { productName: product.name })}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary flex-1 justify-center py-4 rounded-full font-bold shadow-xl"
-                >
-                  Enquire Now
-                </a>
-                <a
-                  href={getWhatsAppUrl(`Hi, I'm interested in the ${product.name}.`)}
-                  onClick={() => trackWhatsAppClick('product_detail_whatsapp', { productName: product.name })}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-whatsapp flex-1 justify-center py-4 rounded-full font-bold shadow-xl"
-                >
-                  <MessageCircle size={20} className="mr-2" />
-                  WhatsApp
-                </a>
-                <a
-                  href={getPhoneUrl()}
-                  onClick={() => trackPhoneCallClick('product_detail_call')}
-                  className="btn-secondary flex-1 justify-center py-4 rounded-full font-bold"
-                >
-                  <Phone size={20} className="mr-2 text-volt" />
-                  Call Us
-                </a>
+              <div className="space-y-4 mb-10 pb-10 border-b border-white/10">
+                {/* Quantity + Add to Material List Bar */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-3 rounded-2xl bg-dark-2/90 border border-white/10">
+                  <div className="flex items-center justify-between sm:justify-start gap-3 px-3 py-2 rounded-xl bg-dark-3/80 border border-white/10 shrink-0">
+                    <span className="text-xs font-mono text-slate-400 uppercase">Quantity:</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setOrderQty(q => Math.max(1, q - 1))}
+                        className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                      >
+                        <Minus size={14} />
+                      </button>
+                      <span className="text-sm font-bold font-mono text-volt min-w-[28px] text-center">
+                        {orderQty}
+                      </span>
+                      <button
+                        onClick={() => setOrderQty(q => q + 1)}
+                        className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                      >
+                        <Plus size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      if (!product) return;
+                      setItemQuantity({ ...product, id: product.id || slug || 'prod' }, orderQty);
+                      setAddedToQuote(true);
+                      setTimeout(() => setAddedToQuote(false), 2200);
+                    }}
+                    className={`flex-1 py-3 px-5 rounded-xl font-bold text-sm shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 ${
+                      addedToQuote
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                        : existingBOMItem
+                        ? 'bg-volt text-dark-1 hover:bg-volt/90 shadow-volt/20'
+                        : 'bg-volt text-dark-1 hover:bg-volt/90 shadow-volt/20'
+                    }`}
+                  >
+                    {addedToQuote ? (
+                      <>
+                        <Check size={18} />
+                        <span>✓ {existingBOMItem ? 'Quantity Updated' : 'Added to Material List'}</span>
+                      </>
+                    ) : existingBOMItem ? (
+                      <>
+                        <Check size={18} className="text-dark-1" />
+                        <span>Update in Material List ({orderQty})</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText size={18} />
+                        <span>+ Add {orderQty} to Material Estimate</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href={getProductEnquiryUrl(product.name)}
+                    onClick={() => trackWhatsAppClick('product_detail_enquire', { productName: product.name })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-whatsapp flex-1 justify-center py-3.5 rounded-xl font-bold shadow-xl"
+                  >
+                    <MessageCircle size={18} className="mr-2" />
+                    Enquire on WhatsApp
+                  </a>
+                  <a
+                    href={getPhoneUrl()}
+                    onClick={() => trackPhoneCallClick('product_detail_call')}
+                    className="btn-secondary flex-1 justify-center py-3.5 rounded-xl font-bold"
+                  >
+                    <Phone size={18} className="mr-2 text-volt" />
+                    Call Us
+                  </a>
+                </div>
               </div>
 
               {/* Specifications */}

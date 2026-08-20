@@ -32,31 +32,22 @@ function docToProduct(id: string, data: DocumentData): FirestoreProduct {
 export async function getPublishedProductsPaginated(
   lastDoc: any = null,
   categorySlug: string = '',
-  searchPrefix: string = '',
-  limitCount: number = 24
+  _searchPrefix: string = '',
+  limitCount: number = 48
 ): Promise<{ products: FirestoreProduct[]; lastDoc: any; hasMore: boolean }> {
   let q = query(
     collection(db, COLLECTIONS.PRODUCTS),
-    where('published', '==', true)
+    where('published', '==', true),
+    orderBy('createdAt', 'desc')
   );
 
   if (categorySlug) {
-    q = query(q, where('categorySlug', '==', categorySlug));
-  }
-
-  if (searchPrefix) {
-    // Basic prefix search based on 'name'. 
-    // \uf8ff is a very high code point in the Unicode range.
     q = query(
-      q,
-      where('name', '>=', searchPrefix),
-      where('name', '<=', searchPrefix + '\uf8ff')
+      collection(db, COLLECTIONS.PRODUCTS),
+      where('published', '==', true),
+      where('categorySlug', '==', categorySlug),
+      orderBy('createdAt', 'desc')
     );
-  } else {
-    // Only apply orderBy if not doing inequality on name (Firestore restriction: 
-    // first orderBy must be on the same field as the inequality filter).
-    // We will just skip ordering if searchPrefix is used for simplicity.
-    q = query(q, orderBy('createdAt', 'desc'));
   }
 
   if (lastDoc) {
@@ -72,6 +63,17 @@ export async function getPublishedProductsPaginated(
     lastDoc: snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null,
     hasMore: snap.docs.length === limitCount
   };
+}
+
+/** Get all published products (public) */
+export async function getAllPublishedProducts(): Promise<FirestoreProduct[]> {
+  const q = query(
+    collection(db, COLLECTIONS.PRODUCTS),
+    where('published', '==', true),
+    orderBy('createdAt', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => docToProduct(d.id, d.data()));
 }
 
 /** Get featured products for homepage */

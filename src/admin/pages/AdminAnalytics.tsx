@@ -22,7 +22,7 @@ import {
 import { useAdminStore } from '../data/adminStore';
 
 export const AdminAnalytics: React.FC = () => {
-  const { products, categories, brands, enquiries } = useAdminStore();
+  const { products, categories, brands, enquiries, dailyAnalytics } = useAdminStore();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '12m'>('30d');
 
   const handleExportReport = () => {
@@ -128,57 +128,78 @@ export const AdminAnalytics: React.FC = () => {
 
       {/* Primary Chart Suite */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TrafficAreaChart />
-        <EnquiryTrendChart />
+        <TrafficAreaChart dailyAnalytics={dailyAnalytics} />
+        <EnquiryTrendChart enquiries={enquiries} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <TopProductsBarChart products={products} />
-        <CategoryPerformanceChart categories={categories} products={products} />
+        <TopProductsBarChart products={products} enquiries={enquiries} />
+        <CategoryPerformanceChart categories={categories} products={products} enquiries={enquiries} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <TrafficSourcesDonutChart enquiries={enquiries} />
-        <DeviceBreakdownDonutChart />
-        <BrandPerformanceChart brands={brands} products={products} />
+        <DeviceBreakdownDonutChart dailyAnalytics={dailyAnalytics} />
+        <BrandPerformanceChart brands={brands} products={products} enquiries={enquiries} />
       </div>
 
-      <ConversionFunnelChart />
+      <ConversionFunnelChart dailyAnalytics={dailyAnalytics} enquiries={enquiries} />
 
       {/* Deep Dive Tables (Top Search Queries & Regional Demand) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Search Keywords Table */}
-        <div className="glass-card rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Search className="w-5 h-5 text-volt" />
-              <h3 className="text-lg font-bold text-white tracking-tight">Top Store Search Queries</h3>
-            </div>
-            <span className="text-xs text-slate-400 font-bold">Past 30 Days</span>
-          </div>
-
-          <div className="space-y-2.5">
-            {[
-              { query: 'PMCona modular switches rate list', count: 1840, growth: '+42%' },
-              { query: 'Polycab 2.5 sq mm wire coil', count: 1420, growth: '+28%' },
-              { query: 'Havells MCB double pole 32A', count: 980, growth: '+15%' },
-              { query: '15W LED panel light warm white', count: 850, growth: '+19%' },
-              { query: 'Schneider 12 Way Distribution Board', count: 640, growth: '+8%' },
-              { query: 'Finolex 4 core flexible cable', count: 520, growth: '+12%' },
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 text-xs">
-                <div className="flex items-center gap-3">
-                  <span className="w-5 h-5 rounded-full bg-dark-2 flex items-center justify-center font-bold text-slate-400 text-[10px]">
-                    {idx + 1}
-                  </span>
-                  <span className="font-bold text-white">{item.query}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-slate-300 font-mono font-bold">{item.count.toLocaleString()}</span>
-                  <span className="text-emerald-400 font-extrabold text-[11px]">{item.growth}</span>
-                </div>
+        <div className="glass-card rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl space-y-4 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Search className="w-5 h-5 text-volt" />
+                <h3 className="text-lg font-bold text-white tracking-tight">Top Store Search Queries</h3>
               </div>
-            ))}
+              <span className="text-xs text-slate-400 font-bold">Live Visitor Telemetry</span>
+            </div>
+
+            {(() => {
+              const aggregatedSearches: Record<string, number> = {};
+              for (const d of dailyAnalytics) {
+                if (d.topSearches) {
+                  for (const [q, count] of Object.entries(d.topSearches)) {
+                    aggregatedSearches[q] = (aggregatedSearches[q] || 0) + count;
+                  }
+                }
+              }
+              const searchList = Object.entries(aggregatedSearches)
+                .map(([query, count]) => ({ query, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 6);
+
+              if (searchList.length === 0) {
+                return (
+                  <div className="p-8 text-center rounded-2xl bg-white/5 border border-white/5 my-auto">
+                    <Search className="w-8 h-8 text-slate-500 mx-auto mb-2 opacity-60" />
+                    <p className="text-xs text-slate-300 font-bold">No Store Searches Recorded Yet</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Real keyword searches typed by visitors into your product search bar will automatically appear here.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-2.5">
+                  {searchList.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 text-xs">
+                      <div className="flex items-center gap-3">
+                        <span className="w-5 h-5 rounded-full bg-dark-2 flex items-center justify-center font-bold text-volt text-[10px]">
+                          {idx + 1}
+                        </span>
+                        <span className="font-bold text-white capitalize">{item.query}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-volt font-mono font-bold">{item.count} {item.count === 1 ? 'search' : 'searches'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -189,28 +210,80 @@ export const AdminAnalytics: React.FC = () => {
               <MapPin className="w-5 h-5 text-volt" />
               <h3 className="text-lg font-bold text-white tracking-tight">Regional Demand Breakdown</h3>
             </div>
-            <span className="text-xs text-slate-400 font-bold">Odisha Distribution</span>
+            <span className="text-xs text-slate-400 font-bold">Real Quotations ({enquiries.length})</span>
           </div>
 
-          <div className="space-y-3">
-            {[
-              { region: 'Rourkela (Udit Nagar, Civil Township)', percent: 48, orders: '1,032 quotes' },
-              { region: 'Sundargarh & Jharsuguda', percent: 24, orders: '516 quotes' },
-              { region: 'Birmitrapur & Kansbahal Industrial Area', percent: 16, orders: '344 quotes' },
-              { region: 'Rajgangpur', percent: 8, orders: '172 quotes' },
-              { region: 'Other Odisha Districts (Sambalpur, Keonjhar)', percent: 4, orders: '86 quotes' },
-            ].map((reg, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="font-bold text-slate-200">{reg.region}</span>
-                  <span className="text-volt font-bold">{reg.percent}% ({reg.orders})</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-dark-2 overflow-hidden">
-                  <div className="h-full rounded-full bg-gradient-to-r from-volt to-blue-500" style={{ width: `${reg.percent}%` }} />
-                </div>
+          {(() => {
+            const totalEnquiries = enquiries.length;
+            const regionalCounts = {
+              rourkela: 0,
+              sundargarh: 0,
+              birmitrapur: 0,
+              rajgangpur: 0,
+              other: 0,
+            };
+
+            for (const e of enquiries) {
+              const text = `${e.productRequirement || ''} ${e.message || ''} ${e.customerName || ''}`.toLowerCase();
+              if (text.includes('sundargarh') || text.includes('jharsuguda')) {
+                regionalCounts.sundargarh++;
+              } else if (text.includes('birmitrapur') || text.includes('kansbahal')) {
+                regionalCounts.birmitrapur++;
+              } else if (text.includes('rajgangpur')) {
+                regionalCounts.rajgangpur++;
+              } else if (text.includes('sambalpur') || text.includes('keonjhar') || text.includes('bhubaneswar') || text.includes('cuttack')) {
+                regionalCounts.other++;
+              } else {
+                regionalCounts.rourkela++;
+              }
+            }
+
+            const regionalList = [
+              {
+                region: 'Rourkela (Udit Nagar, Civil Township)',
+                count: regionalCounts.rourkela,
+                percent: totalEnquiries > 0 ? Math.round((regionalCounts.rourkela / totalEnquiries) * 100) : 100,
+              },
+              {
+                region: 'Sundargarh & Jharsuguda',
+                count: regionalCounts.sundargarh,
+                percent: totalEnquiries > 0 ? Math.round((regionalCounts.sundargarh / totalEnquiries) * 100) : 0,
+              },
+              {
+                region: 'Birmitrapur & Kansbahal Industrial Area',
+                count: regionalCounts.birmitrapur,
+                percent: totalEnquiries > 0 ? Math.round((regionalCounts.birmitrapur / totalEnquiries) * 100) : 0,
+              },
+              {
+                region: 'Rajgangpur',
+                count: regionalCounts.rajgangpur,
+                percent: totalEnquiries > 0 ? Math.round((regionalCounts.rajgangpur / totalEnquiries) * 100) : 0,
+              },
+              {
+                region: 'Other Odisha Districts (Sambalpur, Keonjhar)',
+                count: regionalCounts.other,
+                percent: totalEnquiries > 0 ? Math.round((regionalCounts.other / totalEnquiries) * 100) : 0,
+              },
+            ];
+
+            return (
+              <div className="space-y-3">
+                {regionalList.map((reg, idx) => (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="font-bold text-slate-200">{reg.region}</span>
+                      <span className="text-volt font-bold">
+                        {reg.percent}% ({reg.count} {reg.count === 1 ? 'quote' : 'quotes'})
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-dark-2 overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-volt to-blue-500 transition-all duration-700" style={{ width: `${reg.percent}%` }} />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
         </div>
       </div>
     </div>

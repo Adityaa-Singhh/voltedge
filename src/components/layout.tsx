@@ -11,11 +11,13 @@ import {
 import { getWhatsAppUrl, getPhoneUrl } from '../data';
 import { usePublicStore } from '../data/publicStore';
 import { ThemeToggleButton } from './ThemeToggle';
+import { PWAInstallButton } from './PWAPrompt';
 import { trackWhatsAppClick, trackPhoneCallClick, trackQuoteModalOpen } from '../services/analyticsService';
 
 const navLinks = [
   { label: 'Home', to: '/' },
   { label: 'Products', to: '/products' },
+  { label: 'Estimator', to: '/estimator', isNew: true },
   { label: 'Brands', to: '/brands' },
   { label: 'About', to: '/about' },
   { label: 'Gallery', to: '/gallery' },
@@ -148,7 +150,7 @@ export default function Navbar({ onQuote }: { onQuote: () => void }) {
           <a
             href={getPhoneUrl()}
             onClick={() => trackPhoneCallClick('navbar_desktop')}
-            className="liquid-glass text-white text-sm font-semibold px-4 py-2.5 rounded-full hover:bg-white/10 transition-all flex items-center gap-2 border border-white/10"
+            className="liquid-glass text-white text-sm font-semibold px-3.5 py-1.5 rounded-xl hover:bg-white/10 transition-all flex items-center gap-2 border border-white/10"
           >
             <Phone size={14} className="text-volt" />
             Call Us
@@ -158,7 +160,7 @@ export default function Navbar({ onQuote }: { onQuote: () => void }) {
               trackQuoteModalOpen('navbar_desktop');
               onQuote();
             }}
-            className="bg-gradient-to-r from-volt to-volt-dim text-dark-0 text-sm font-bold px-5 py-2.5 rounded-full hover:shadow-[0_4px_25px_rgba(0,229,255,0.45)] hover:scale-105 transition-all"
+            className="bg-gradient-to-r from-volt to-volt-dim text-dark-0 text-sm font-bold px-4 py-1.5 rounded-xl hover:shadow-[0_4px_25px_rgba(0,229,255,0.45)] hover:scale-105 transition-all"
           >
             Get a Quote
           </button>
@@ -172,7 +174,7 @@ export default function Navbar({ onQuote }: { onQuote: () => void }) {
           <a
             href={getPhoneUrl()}
             onClick={() => trackPhoneCallClick('navbar_mobile')}
-            className="liquid-glass text-white text-xs font-semibold px-3 py-2 rounded-2xl hover:bg-white/10 transition-all flex items-center gap-1.5 border border-white/10"
+            className="liquid-glass text-white text-xs font-semibold px-2.5 py-2 rounded-2xl hover:bg-white/10 transition-all flex items-center gap-1.5 border border-white/10"
             aria-label="Call Sai Enterprises"
           >
             <Phone size={13} className="text-volt" />
@@ -222,6 +224,9 @@ export default function Navbar({ onQuote }: { onQuote: () => void }) {
               </Link>
             )
           )}
+          <div className="pt-2">
+            <PWAInstallButton className="w-full justify-center py-3" />
+          </div>
         </div>
       )}
     </header>

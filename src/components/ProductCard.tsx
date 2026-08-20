@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MessageCircle, Eye, ArrowRight } from 'lucide-react';
+import { MessageCircle, Eye, ArrowRight, Plus, Check } from 'lucide-react';
 import { ProductImage } from './ui';
 import { getProductEnquiryUrl } from '../data';
+import { useBOM } from '../context/BOMContext';
 
 export interface Product {
   id: string;
@@ -32,12 +33,31 @@ export interface ListCardProps {
 }
 
 // ==========================================
-// ==========================================
 // 1. PRODUCT GRID CARD (2-Col Mobile, Enhanced Desktop)
 // ==========================================
 export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView }) => {
+  const { items, addItem } = useBOM();
+  const [added, setAdded] = useState(false);
+
+  const existingItem = items.find(
+    (i) => i.id === product.id || i.name.toLowerCase() === product.name.toLowerCase()
+  );
+  const currentQty = existingItem ? existingItem.quantity : 0;
+
+  const handleAddToQuote = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addItem(product, 1);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
+
   return (
-    <div className="w-full rounded-2xl bg-dark-2 border border-white/10 hover:border-volt/40 hover:shadow-[0_12px_28px_rgba(0,0,0,0.5),0_0_20px_rgba(0,229,255,0.08)] overflow-hidden flex flex-col group transition-all duration-300 relative">
+    <div className={`w-full rounded-2xl bg-dark-2 border transition-all duration-300 relative overflow-hidden flex flex-col group ${
+      currentQty > 0
+        ? 'border-volt/50 shadow-[0_4px_20px_rgba(0,229,255,0.12)]'
+        : 'border-white/10 hover:border-volt/40 hover:shadow-[0_12px_28px_rgba(0,0,0,0.5),0_0_20px_rgba(0,229,255,0.08)]'
+    }`}>
       {/* IMAGE AREA (Mobile: 130px, Desktop: 176px - 10-15% larger) */}
       <div className="h-[130px] sm:h-36 lg:h-44 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
         <ProductImage
@@ -74,6 +94,37 @@ export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView 
             </span>
           )}
         </div>
+
+        {/* Quick Add to Quotation Badge Button (Top-Right) */}
+        <button
+          onClick={handleAddToQuote}
+          className={`absolute top-2 right-2 z-10 px-2 py-1 rounded-lg border text-[10px] font-bold transition-all shadow-md active:scale-95 flex items-center gap-1 ${
+            added
+              ? 'bg-emerald-500 text-white border-emerald-400'
+              : currentQty > 0
+              ? 'bg-volt/20 text-volt border-volt/50 hover:bg-volt hover:text-dark-1'
+              : 'bg-dark-0/80 hover:bg-volt text-volt hover:text-dark-0 border-white/15'
+          }`}
+          title={currentQty > 0 ? `Already in Quote (${currentQty}). Tap to add 1 more` : "Add to Material Quotation List"}
+          aria-label={`Add ${product.name} to material list`}
+        >
+          {added ? (
+            <>
+              <Check className="w-3 h-3" />
+              <span className="hidden sm:inline">+1 Added</span>
+            </>
+          ) : currentQty > 0 ? (
+            <>
+              <Check className="w-3 h-3 text-volt" />
+              <span>In Quote ({currentQty})</span>
+            </>
+          ) : (
+            <>
+              <Plus className="w-3 h-3" />
+              <span className="hidden sm:inline">Quote</span>
+            </>
+          )}
+        </button>
 
         {/* Quick View Button (Bottom-Right, 32px-36px circle) */}
         {onQuickView && (
@@ -157,6 +208,20 @@ export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView 
 // 2. PRODUCT LIST CARD (Enterprise Modern Layout)
 // ==========================================
 export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView }) => {
+  const { items, addItem } = useBOM();
+  const [added, setAdded] = useState(false);
+
+  const existingItem = items.find(
+    (i) => i.id === product.id || i.name.toLowerCase() === product.name.toLowerCase()
+  );
+  const currentQty = existingItem ? existingItem.quantity : 0;
+
+  const handleAddToQuote = () => {
+    addItem(product, 1);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
+
   // Extract key specs to display (up to 4 specs)
   const displaySpecs = product.specifications && Array.isArray(product.specifications) 
     ? product.specifications.slice(0, 4) 
@@ -315,11 +380,39 @@ export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView 
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 mt-auto">
+          <button
+            onClick={handleAddToQuote}
+            className={`w-full py-2 min-h-[38px] rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all active:scale-95 text-center ${
+              added
+                ? 'bg-emerald-500 text-white border-emerald-400'
+                : currentQty > 0
+                ? 'bg-volt/20 text-volt border-volt/50 hover:bg-volt hover:text-dark-1'
+                : 'bg-volt/15 text-volt border-volt/30 hover:bg-volt hover:text-dark-1'
+            }`}
+          >
+            {added ? (
+              <>
+                <Check className="w-3.5 h-3.5" />
+                <span>+1 Added to List</span>
+              </>
+            ) : currentQty > 0 ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-volt" />
+                <span>In Quote ({currentQty}) • + Add More</span>
+              </>
+            ) : (
+              <>
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Add to Quote List</span>
+              </>
+            )}
+          </button>
+
           <a
             href={getProductEnquiryUrl(product.name)}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full py-2.5 min-h-[40px] rounded-xl text-xs font-extrabold bg-[#25d366] hover:bg-[#20bd5a] text-white flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_4px_14px_rgba(37,211,102,0.2)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.35)]"
+            className="w-full py-2 min-h-[38px] rounded-xl text-xs font-extrabold bg-[#25d366] hover:bg-[#20bd5a] text-white flex items-center justify-center gap-2 transition-all active:scale-95 shadow-[0_4px_14px_rgba(37,211,102,0.2)] hover:shadow-[0_6px_20px_rgba(37,211,102,0.35)]"
             aria-label={`Enquire about ${product.name} on WhatsApp`}
           >
             <MessageCircle className="w-4 h-4 shrink-0" />
@@ -328,7 +421,7 @@ export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView 
 
           <Link
             to={`/products/${product.slug}`}
-            className="w-full py-2.5 min-h-[38px] rounded-xl text-xs font-bold bg-white/5 hover:bg-white/15 border border-white/10 hover:border-white/20 text-white flex items-center justify-center gap-1.5 transition-all active:scale-95"
+            className="w-full py-1.5 min-h-[32px] rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white flex items-center justify-center gap-1 transition-all active:scale-95"
             aria-label={`View full specifications for ${product.name}`}
           >
             <span>View Full Specs</span>

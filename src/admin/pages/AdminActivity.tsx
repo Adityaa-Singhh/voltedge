@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { 
   Search, 
-  Download
+  Download,
+  Trash2
 } from 'lucide-react';
 import { useAdminStore } from '../data/adminStore';
 import { AdminBreadcrumbs, StatusBadge } from '../components/AdminUI';
 
 export const AdminActivity: React.FC = () => {
-  const { activities } = useAdminStore();
+  const { activities, clearActivities } = useAdminStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
@@ -50,13 +51,29 @@ export const AdminActivity: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleExport}
-          className="btn-secondary py-2.5 px-4 rounded-full text-xs font-bold text-white border border-white/10 flex items-center gap-1.5"
-        >
-          <Download className="w-3.5 h-3.5 text-volt" />
-          <span>Export Audit Log (JSON)</span>
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {activities.length > 0 && (
+            <button
+              onClick={() => {
+                if (window.confirm('Are you sure you want to clear the audit activity log?')) {
+                  clearActivities();
+                }
+              }}
+              className="btn-secondary py-2.5 px-3.5 rounded-full text-xs font-bold text-red-400 border border-red-500/20 hover:bg-red-500/10 flex items-center gap-1.5 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear Log</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleExport}
+            className="btn-secondary py-2.5 px-4 rounded-full text-xs font-bold text-white border border-white/10 flex items-center gap-1.5"
+          >
+            <Download className="w-3.5 h-3.5 text-volt" />
+            <span>Export Audit Log (JSON)</span>
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter Bar */}

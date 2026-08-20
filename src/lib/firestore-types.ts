@@ -292,6 +292,27 @@ export interface FirestoreAnalyticsEvent {
 }
 
 // ---------------------------------------------------------------------------
+// analyticsDaily/{YYYY-MM-DD}
+// ---------------------------------------------------------------------------
+export interface DailyAnalytics {
+  id: string; // 'YYYY-MM-DD'
+  date: string;
+  pageViews: number;
+  uniqueVisitors: number;
+  whatsappClicks: number;
+  phoneClicks: number;
+  quoteModalOpens: number;
+  enquiries: number;
+  deviceMobile: number;
+  deviceDesktop: number;
+  deviceTablet: number;
+  hourlyPageViews?: Record<string, number>;
+  topSearches?: Record<string, number>;
+  topPages?: Record<string, number>;
+  updatedAt?: any;
+}
+
+// ---------------------------------------------------------------------------
 // Collection name constants — avoids magic strings
 // ---------------------------------------------------------------------------
 export const COLLECTIONS = {
@@ -306,4 +327,5 @@ export const COLLECTIONS = {
   BUSINESS_INFO: 'businessInfo',
   ADMIN_LOGS: 'adminLogs',
   ANALYTICS_EVENTS: 'analyticsEvents',
+  ANALYTICS_DAILY: 'analyticsDaily',
 } as const;

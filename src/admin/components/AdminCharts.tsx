@@ -23,6 +23,7 @@ import {
   ArrowRight,
   TrendingUp
 } from 'lucide-react';
+import { type DailyAnalytics } from '../../lib/firestore-types';
 
 // Custom Tooltip Formatter matching Sai Enterprises dark glass aesthetic
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -45,41 +46,91 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+// Helper to format date YYYY-MM-DD
+function formatKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ==========================================
 // 1. WEBSITE TRAFFIC AREA CHART
 // ==========================================
-export const TrafficAreaChart: React.FC = () => {
+export const TrafficAreaChart: React.FC<{ dailyAnalytics?: DailyAnalytics[] }> = ({ dailyAnalytics = [] }) => {
   const [timeframe, setTimeframe] = useState<'today' | '7d' | '30d' | '90d'>('30d');
 
+  const todayKey = formatKey(new Date());
+  const todayRecord = dailyAnalytics.find(d => d.date === todayKey);
+
+  // 1. TODAY: hourly breakdown
+  const todayHours = ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'];
+  const todayData = todayHours.map(hour => {
+    const pv = todayRecord?.hourlyPageViews?.[hour] || 0;
+    return {
+      time: hour,
+      visitors: Math.ceil(pv * 0.7),
+      pageViews: pv
+    };
+  });
+
+  // 2. 7 DAYS
+  const days7 = [];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const k = formatKey(d);
+    const rec = dailyAnalytics.find(item => item.date === k);
+    days7.push({
+      time: dayNames[d.getDay()],
+      visitors: rec?.uniqueVisitors || (rec?.pageViews ? Math.ceil(rec.pageViews * 0.7) : 0),
+      pageViews: rec?.pageViews || 0
+    });
+  }
+
+  // 3. 30 DAYS (Weeks 1 to 4)
+  const weeks30 = [
+    { time: 'Week 1', visitors: 0, pageViews: 0 },
+    { time: 'Week 2', visitors: 0, pageViews: 0 },
+    { time: 'Week 3', visitors: 0, pageViews: 0 },
+    { time: 'Week 4', visitors: 0, pageViews: 0 },
+  ];
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const k = formatKey(d);
+    const rec = dailyAnalytics.find(item => item.date === k);
+    const weekIdx = Math.min(3, Math.floor((27 - i) / 7));
+    if (rec) {
+      weeks30[weekIdx].visitors += rec.uniqueVisitors || Math.ceil(rec.pageViews * 0.7);
+      weeks30[weekIdx].pageViews += rec.pageViews;
+    }
+  }
+
+  // 4. 90 DAYS (Months 1 to 3)
+  const months90 = [
+    { time: 'Month 1', visitors: 0, pageViews: 0 },
+    { time: 'Month 2', visitors: 0, pageViews: 0 },
+    { time: 'Month 3', visitors: 0, pageViews: 0 },
+  ];
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const k = formatKey(d);
+    const rec = dailyAnalytics.find(item => item.date === k);
+    const monthIdx = Math.min(2, Math.floor((89 - i) / 30));
+    if (rec) {
+      months90[monthIdx].visitors += rec.uniqueVisitors || Math.ceil(rec.pageViews * 0.7);
+      months90[monthIdx].pageViews += rec.pageViews;
+    }
+  }
+
   const dataMap = {
-    today: [
-      { time: '06:00', visitors: 14, pageViews: 32 },
-      { time: '09:00', visitors: 68, pageViews: 145 },
-      { time: '12:00', visitors: 120, pageViews: 280 },
-      { time: '15:00', visitors: 95, pageViews: 210 },
-      { time: '18:00', visitors: 160, pageViews: 390 },
-      { time: '21:00', visitors: 110, pageViews: 240 },
-    ],
-    '7d': [
-      { time: 'Mon', visitors: 420, pageViews: 1120 },
-      { time: 'Tue', visitors: 560, pageViews: 1450 },
-      { time: 'Wed', visitors: 610, pageViews: 1620 },
-      { time: 'Thu', visitors: 590, pageViews: 1540 },
-      { time: 'Fri', visitors: 720, pageViews: 1980 },
-      { time: 'Sat', visitors: 850, pageViews: 2310 },
-      { time: 'Sun', visitors: 490, pageViews: 1250 },
-    ],
-    '30d': [
-      { time: 'Week 1', visitors: 2800, pageViews: 7400 },
-      { time: 'Week 2', visitors: 3400, pageViews: 8900 },
-      { time: 'Week 3', visitors: 4100, pageViews: 11200 },
-      { time: 'Week 4', visitors: 4850, pageViews: 13100 },
-    ],
-    '90d': [
-      { time: 'Month 1', visitors: 9800, pageViews: 26500 },
-      { time: 'Month 2', visitors: 12400, pageViews: 34100 },
-      { time: 'Month 3', visitors: 15800, pageViews: 42900 },
-    ],
+    today: todayData,
+    '7d': days7,
+    '30d': weeks30,
+    '90d': months90,
   };
 
   const currentData = dataMap[timeframe];
@@ -142,16 +193,30 @@ export const TrafficAreaChart: React.FC = () => {
 // ==========================================
 // 2. ENQUIRY TREND CHART
 // ==========================================
-export const EnquiryTrendChart: React.FC = () => {
-  const enquiryData = [
-    { day: 'Mon', new: 12, resolved: 8, pending: 4 },
-    { day: 'Tue', new: 18, resolved: 14, pending: 8 },
-    { day: 'Wed', new: 15, resolved: 16, pending: 7 },
-    { day: 'Thu', new: 22, resolved: 19, pending: 10 },
-    { day: 'Fri', new: 28, resolved: 24, pending: 14 },
-    { day: 'Sat', new: 34, resolved: 30, pending: 18 },
-    { day: 'Sun', new: 16, resolved: 15, pending: 19 },
-  ];
+export const EnquiryTrendChart: React.FC<{ enquiries?: any[] }> = ({ enquiries = [] }) => {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const enquiryData = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dayName = dayNames[d.getDay()];
+
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const dayEnd = dayStart + 24 * 60 * 60 * 1000;
+
+    const matches = enquiries.filter(e => {
+      const t = e.timestamp || (e.createdAt?.toMillis ? e.createdAt.toMillis() : 0);
+      return t >= dayStart && t < dayEnd;
+    });
+
+    enquiryData.push({
+      day: dayName,
+      new: matches.filter(e => e.status === 'NEW').length,
+      resolved: matches.filter(e => e.status === 'RESOLVED' || e.status === 'CLOSED').length,
+      pending: matches.filter(e => e.status === 'CONTACTED' || e.status === 'IN_PROGRESS').length,
+    });
+  }
 
   return (
     <div className="glass-card rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl">
@@ -195,37 +260,47 @@ export const EnquiryTrendChart: React.FC = () => {
 // ==========================================
 // 3. TOP ENQUIRED PRODUCTS (HORIZONTAL BAR)
 // ==========================================
-export const TopProductsBarChart: React.FC<{ products?: any[] }> = ({ products = [] }) => {
-  const productData = products.length > 0 
-    ? products.slice(0, 6).map((p, i) => ({
-        name: p.name.length > 20 ? p.name.slice(0, 18) + '...' : p.name,
-        enquiries: (products.length - i) * 12 + 15
-      }))
-    : [
-        { name: 'PMCona 6A Switch', enquiries: 142 },
-        { name: 'Polycab 1.5 sq mm Wire', enquiries: 118 },
-        { name: 'PMCona 16A Socket', enquiries: 96 },
-        { name: 'Crompton BLDC Fan', enquiries: 84 },
-        { name: 'Schneider 63A MCB', enquiries: 72 },
-        { name: 'Syska 36W LED Panel', enquiries: 61 },
-      ];
+export const TopProductsBarChart: React.FC<{ products?: any[]; enquiries?: any[] }> = ({ products = [], enquiries = [] }) => {
+  const productData = products.map((p) => {
+    const pName = (p.name || '').toLowerCase();
+    const pSlug = (p.slug || '').toLowerCase();
+    const model = (p.modelNumber || '').toLowerCase();
+
+    // Count real matching customer enquiries
+    const count = enquiries.filter(e => {
+      const req = (e.productRequirement || '').toLowerCase();
+      const msg = (e.message || '').toLowerCase();
+      return req.includes(pName) || msg.includes(pName) || (pSlug && req.includes(pSlug)) || (model && req.includes(model));
+    }).length;
+
+    return {
+      name: p.name.length > 20 ? p.name.slice(0, 18) + '...' : p.name,
+      fullName: p.name,
+      enquiries: count,
+      inStock: p.inStock
+    };
+  });
+
+  // Sort by enquiries descending, taking top 6
+  productData.sort((a, b) => b.enquiries - a.enquiries);
+  const displayData = productData.slice(0, 6);
 
   return (
     <div className="glass-card rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl">
       <div className="mb-6">
         <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">Top Catalogue Products</h3>
-        <p className="text-xs text-slate-400 mt-0.5">Live items in inventory with highest demand</p>
+        <p className="text-xs text-slate-400 mt-0.5">Real-time inquiry demand across live store products</p>
       </div>
 
       <div className="h-64 sm:h-72 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={productData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
+          <BarChart data={displayData} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
-            <XAxis type="number" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+            <XAxis type="number" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
             <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fill: '#e2e8f0', fontSize: 11 }} width={120} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="enquiries" name="Requests" fill="#00e5ff" radius={[0, 8, 8, 0]}>
-              {productData.map((_, index) => (
+            <Bar dataKey="enquiries" name="Customer Inquiries" fill="#00e5ff" radius={[0, 8, 8, 0]}>
+              {displayData.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={index === 0 ? '#00e5ff' : index === 1 ? '#38bdf8' : '#60a5fa'} />
               ))}
             </Bar>
@@ -239,30 +314,34 @@ export const TopProductsBarChart: React.FC<{ products?: any[] }> = ({ products =
 // ==========================================
 // 4. CATEGORY PERFORMANCE (BAR CHART)
 // ==========================================
-export const CategoryPerformanceChart: React.FC<{ categories?: any[]; products?: any[] }> = ({ categories = [], products = [] }) => {
-  const catData = categories.length > 0
-    ? categories.slice(0, 6).map(c => {
-        const count = products.filter(p => p.categorySlug === c.slug || p.category === c.name).length;
-        return {
-          category: c.name,
-          views: count > 0 ? count * 140 + 250 : 350,
-          enquiries: count > 0 ? count * 15 + 12 : 20
-        };
-      })
-    : [
-        { category: 'Switches', views: 3200, enquiries: 240 },
-        { category: 'Wires', views: 2800, enquiries: 210 },
-        { category: 'Lighting', views: 2400, enquiries: 160 },
-        { category: 'MCB & DB', views: 1900, enquiries: 145 },
-        { category: 'Fans', views: 1600, enquiries: 110 },
-        { category: 'Sockets', views: 1400, enquiries: 95 },
-      ];
+export const CategoryPerformanceChart: React.FC<{ categories?: any[]; products?: any[]; enquiries?: any[] }> = ({ categories = [], products = [], enquiries = [] }) => {
+  const catData = categories.slice(0, 6).map(c => {
+    const cName = (c.name || '').toLowerCase();
+    const cSlug = (c.slug || '').toLowerCase();
+
+    const productCount = products.filter(p => 
+      p.categorySlug === c.slug || 
+      (p.category && p.category.toLowerCase() === cName)
+    ).length;
+
+    const enquiryCount = enquiries.filter(e => {
+      const req = (e.productRequirement || '').toLowerCase();
+      const msg = (e.message || '').toLowerCase();
+      return req.includes(cName) || msg.includes(cName) || (cSlug && req.includes(cSlug));
+    }).length;
+
+    return {
+      category: c.name,
+      products: productCount,
+      enquiries: enquiryCount,
+    };
+  });
 
   return (
     <div className="glass-card rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl">
       <div className="mb-6">
         <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">Category Breakdown</h3>
-        <p className="text-xs text-slate-400 mt-0.5">Live category product counts and customer engagement</p>
+        <p className="text-xs text-slate-400 mt-0.5">Live inventory items and inquiry count by category</p>
       </div>
 
       <div className="h-64 sm:h-72 w-full">
@@ -270,11 +349,11 @@ export const CategoryPerformanceChart: React.FC<{ categories?: any[]; products?:
           <BarChart data={catData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
             <XAxis dataKey="category" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-            <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+            <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-            <Bar dataKey="views" name="Catalogue Interest" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="enquiries" name="Direct Inquiries" fill="#00e5ff" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="products" name="Live Products" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="enquiries" name="Customer Inquiries" fill="#00e5ff" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -352,18 +431,27 @@ export const TrafficSourcesDonutChart: React.FC<{ enquiries?: any[] }> = ({ enqu
 // ==========================================
 // 6. DEVICE BREAKDOWN (DONUT)
 // ==========================================
-export const DeviceBreakdownDonutChart: React.FC = () => {
+export const DeviceBreakdownDonutChart: React.FC<{ dailyAnalytics?: DailyAnalytics[] }> = ({ dailyAnalytics = [] }) => {
+  const totalMobile = dailyAnalytics.reduce((sum, d) => sum + (d.deviceMobile || 0), 0);
+  const totalDesktop = dailyAnalytics.reduce((sum, d) => sum + (d.deviceDesktop || 0), 0);
+  const totalTablet = dailyAnalytics.reduce((sum, d) => sum + (d.deviceTablet || 0), 0);
+  const total = totalMobile + totalDesktop + totalTablet;
+
+  const mobPct = total > 0 ? Math.round((totalMobile / total) * 100) : 74;
+  const deskPct = total > 0 ? Math.round((totalDesktop / total) * 100) : 21;
+  const tabPct = total > 0 ? Math.max(0, 100 - mobPct - deskPct) : 5;
+
   const deviceData = [
-    { name: 'Mobile Phone', value: 74, color: '#00e5ff', icon: Smartphone },
-    { name: 'Desktop Computer', value: 21, color: '#3b82f6', icon: Monitor },
-    { name: 'Tablet Devices', value: 5, color: '#a855f7', icon: Tablet },
+    { name: 'Mobile Phone', value: mobPct, color: '#00e5ff', icon: Smartphone },
+    { name: 'Desktop Computer', value: deskPct, color: '#3b82f6', icon: Monitor },
+    { name: 'Tablet Devices', value: tabPct, color: '#a855f7', icon: Tablet },
   ];
 
   return (
     <div className="glass-card rounded-3xl p-6 sm:p-8 border border-white/10 shadow-xl flex flex-col justify-between">
       <div>
         <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">Device & Platform Split</h3>
-        <p className="text-xs text-slate-400 mt-0.5">74% of electrical contractors browse on mobile</p>
+        <p className="text-xs text-slate-400 mt-0.5">{mobPct}% of visitors browse on mobile devices</p>
       </div>
 
       <div className="h-56 w-full relative my-2">
@@ -385,7 +473,7 @@ export const DeviceBreakdownDonutChart: React.FC = () => {
         </ResponsiveContainer>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-2xl font-extrabold text-white">74%</span>
+          <span className="text-2xl font-extrabold text-white">{mobPct}%</span>
           <span className="text-[10px] text-slate-400 font-bold uppercase">Mobile-First</span>
         </div>
       </div>
@@ -408,24 +496,28 @@ export const DeviceBreakdownDonutChart: React.FC = () => {
 // ==========================================
 // 7. BRAND PERFORMANCE CHART
 // ==========================================
-export const BrandPerformanceChart: React.FC<{ brands?: any[]; products?: any[] }> = ({ brands = [], products = [] }) => {
-  const brandData = brands.length > 0
-    ? brands.slice(0, 6).map(b => {
-        const count = products.filter(p => p.brandSlug === b.slug || p.brand === b.name).length;
-        return {
-          brand: b.name,
-          views: count > 0 ? count * 180 + 300 : 400,
-          enquiries: count > 0 ? count * 22 + 15 : 25
-        };
-      })
-    : [
-        { brand: 'PMCona', views: 4500, enquiries: 380 },
-        { brand: 'Havells', views: 3900, enquiries: 290 },
-        { brand: 'Polycab', views: 3600, enquiries: 270 },
-        { brand: 'Anchor', views: 2400, enquiries: 180 },
-        { brand: 'Finolex', views: 2100, enquiries: 140 },
-        { brand: 'Schneider', views: 1800, enquiries: 125 },
-      ];
+export const BrandPerformanceChart: React.FC<{ brands?: any[]; products?: any[]; enquiries?: any[] }> = ({ brands = [], products = [], enquiries = [] }) => {
+  const brandData = brands.slice(0, 6).map(b => {
+    const bName = (b.name || '').toLowerCase();
+    const bSlug = (b.slug || '').toLowerCase();
+
+    const productCount = products.filter(p => 
+      p.brandSlug === b.slug || 
+      (p.brand && p.brand.toLowerCase() === bName)
+    ).length;
+
+    const enquiryCount = enquiries.filter(e => {
+      const req = (e.productRequirement || '').toLowerCase();
+      const msg = (e.message || '').toLowerCase();
+      return req.includes(bName) || msg.includes(bName) || (bSlug && req.includes(bSlug));
+    }).length;
+
+    return {
+      brand: b.name,
+      products: productCount,
+      enquiries: enquiryCount,
+    };
+  });
 
   const topBrand = brandData.length > 0 ? brandData[0].brand : 'PMCona';
 
@@ -446,10 +538,10 @@ export const BrandPerformanceChart: React.FC<{ brands?: any[]; products?: any[] 
           <BarChart data={brandData} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
             <XAxis dataKey="brand" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-            <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
+            <YAxis stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
             <Tooltip content={<CustomTooltip />} />
             <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-            <Bar dataKey="views" name="Brand Views" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="products" name="Live Products" fill="#3b82f6" radius={[6, 6, 0, 0]} />
             <Bar dataKey="enquiries" name="Product Enquiries" fill="#00e5ff" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -461,13 +553,29 @@ export const BrandPerformanceChart: React.FC<{ brands?: any[]; products?: any[] 
 // ==========================================
 // 8. CONVERSION FUNNEL VISUALIZATION
 // ==========================================
-export const ConversionFunnelChart: React.FC = () => {
+export const ConversionFunnelChart: React.FC<{ dailyAnalytics?: DailyAnalytics[]; enquiries?: any[] }> = ({ dailyAnalytics = [], enquiries = [] }) => {
+  const totalPageViews = dailyAnalytics.reduce((sum, d) => sum + (d.pageViews || 0), 0);
+  const totalUniqueVisitors = dailyAnalytics.reduce((sum, d) => sum + (d.uniqueVisitors || 0), 0);
+  const totalWhatsAppClicks = dailyAnalytics.reduce((sum, d) => sum + (d.whatsappClicks || 0), 0);
+  const totalPhoneClicks = dailyAnalytics.reduce((sum, d) => sum + (d.phoneClicks || 0), 0);
+  const totalQuoteOpens = dailyAnalytics.reduce((sum, d) => sum + (d.quoteModalOpens || 0), 0);
+  const totalResolved = enquiries.filter(e => e.status === 'RESOLVED' || e.status === 'CLOSED').length;
+
+  const visitors = totalUniqueVisitors || totalPageViews || (enquiries.length > 0 ? enquiries.length * 4 : 1);
+  const productViews = Math.round(visitors * 0.7);
+  const directInteractions = totalWhatsAppClicks + totalPhoneClicks + totalQuoteOpens || enquiries.length;
+  const quoteLeads = enquiries.length;
+  const resolvedCount = totalResolved;
+
+  const vCount = Math.max(1, visitors);
+  const overallPct = ((resolvedCount / vCount) * 100).toFixed(1);
+
   const steps = [
-    { label: 'Website Visitors', count: '14,280', pct: '100%', drop: null, icon: Users },
-    { label: 'Product Detail Views', count: '8,420', pct: '58.9%', drop: '-41.1%', icon: ArrowRight },
-    { label: 'WhatsApp / Call Clicks', count: '2,150', pct: '15.0%', drop: '-74.4%', icon: Smartphone },
-    { label: 'Direct Quote Requests', count: '940', pct: '6.5%', drop: '-56.2%', icon: MessageSquare },
-    { label: 'Completed Wholesale Orders', count: '480', pct: '3.3%', drop: '-48.9%', icon: TrendingUp },
+    { label: 'Website Visitors', count: visitors.toLocaleString(), pct: '100%', icon: Users },
+    { label: 'Product Detail Views', count: productViews.toLocaleString(), pct: `${Math.min(100, Math.round((productViews / vCount) * 100))}%`, icon: ArrowRight },
+    { label: 'WhatsApp / Call Clicks', count: directInteractions.toLocaleString(), pct: `${Math.min(100, Math.round((directInteractions / vCount) * 100))}%`, icon: Smartphone },
+    { label: 'Direct Quote Requests', count: quoteLeads.toLocaleString(), pct: `${Math.min(100, Math.round((quoteLeads / vCount) * 100))}%`, icon: MessageSquare },
+    { label: 'Completed Wholesale Orders', count: resolvedCount.toLocaleString(), pct: `${Math.min(100, Math.round((resolvedCount / vCount) * 100))}%`, icon: TrendingUp },
   ];
 
   return (
@@ -478,7 +586,7 @@ export const ConversionFunnelChart: React.FC = () => {
           <p className="text-xs text-slate-400 mt-0.5">Visitor journey from homepage view to completed electrical order</p>
         </div>
         <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/30">
-          3.3% Overall Conversion
+          {overallPct}% Overall Conversion
         </div>
       </div>
 
