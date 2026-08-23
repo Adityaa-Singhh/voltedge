@@ -76,11 +76,63 @@ export default function About() {
     }
   ];
 
+  // Generative Engine Optimization (GEO) Schema for About Page
+  const aboutSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    name: `About ${businessInfo.name}`,
+    description: `${businessInfo.name} is Rourkela's premier electrical wholesale dealer and authorized PM CONA, Polycab, and Havells distributor in Odisha.`,
+    mainEntity: {
+      '@type': ['LocalBusiness', 'WholesaleStore', 'ElectricalSupplyStore'],
+      name: businessInfo.name,
+      alternateName: ['Sai Enterprises PM CONA Dealer', 'Sai Enterprises Electrical Wholesaler'],
+      url: 'https://saienterprises-90c6b.web.app/about',
+      logo: 'https://saienterprises-90c6b.web.app/favicon-512x512.png',
+      telephone: businessInfo.phone || '+91 94370 12345',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: businessInfo.address || 'Near Bank of India, TCI Chowk',
+        addressLocality: 'Rourkela',
+        addressRegion: 'Odisha',
+        postalCode: '769004',
+        addressCountry: 'IN',
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: '22.2270',
+        longitude: '84.8536',
+      },
+      areaServed: [
+        'Rourkela',
+        'Sundargarh',
+        'Jharsuguda',
+        'Panposh',
+        'Udit Nagar',
+        'Civil Township',
+        'Birmitrapur',
+        'Rajgangpur',
+        'Kansbahal',
+        'Odisha',
+      ],
+      knowsAbout: [
+        'PM CONA Modular Switches',
+        'Polycab Copper Wires & Industrial Cables',
+        'Havells MCBs, RCCBs & Distribution Boards',
+        'Commercial & Residential LED Lighting',
+        'Electrical Contractor Supplies',
+      ],
+      paymentAccepted: 'Cash, UPI, NEFT, RTGS, Cheque',
+      currenciesAccepted: 'INR',
+      priceRange: '₹₹',
+    },
+  };
+
   return (
     <div className="pt-24 lg:pt-32 pb-16 min-h-screen">
       <SEO 
-        title="About Sai Enterprises | Electrical Shop in Rourkela"
-        description="Learn about Sai Enterprises, a local electrical products store serving customers in Rourkela and surrounding areas."
+        title="About Sai Enterprises | Authorized PM CONA & Electrical Wholesaler in Rourkela"
+        description="Learn about Sai Enterprises, Rourkela's trusted electrical wholesale supplier and authorized PM CONA dealer serving contractors and retailers across Odisha."
+        jsonLd={aboutSchema}
       />
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">
@@ -140,18 +192,16 @@ export default function About() {
               />
             </div>
             
-            {/* Floating Badge */}
-            <div className="absolute -bottom-6 -left-6 bg-dark-1 border border-white/15 p-6 rounded-3xl shadow-2xl z-20 liquid-glass animate-bounce-slow hidden md:block">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-volt/20 flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6 text-volt" />
+            {/* Experience Trust Badge */}
+            <div className="absolute -bottom-6 -left-6 glass-card p-4 sm:p-5 rounded-2xl border border-white/15 z-20 hidden md:flex items-center gap-4 shadow-xl">
+              <div className="w-12 h-12 rounded-xl bg-volt/15 flex items-center justify-center border border-volt/30 shrink-0">
+                <ShieldCheck className="w-6 h-6 text-volt" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white flex items-center leading-tight">
+                  <Counter end={parseInt(businessInfo.experience)} suffix="+" />
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-white flex items-center">
-                    <Counter end={parseInt(businessInfo.experience)} suffix="+" />
-                  </div>
-                  <div className="text-sm text-slate-300 font-medium">Years of Trust</div>
-                </div>
+                <div className="text-xs text-slate-300 font-medium">Years of Trust</div>
               </div>
             </div>
           </div>
@@ -201,12 +251,12 @@ export default function About() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mt-12">
           {values.map((value, idx) => (
-            <div key={idx} className="glass-card p-8 rounded-3xl border border-white/10 hover:border-volt/40 transition-colors duration-300 group">
-              <div className="w-14 h-14 rounded-2xl bg-dark-2 flex items-center justify-center mb-6 border border-white/10 group-hover:bg-volt group-hover:text-dark-0 transition-colors duration-300 shadow-lg">
-                <value.icon className="w-7 h-7 text-volt group-hover:text-dark-0 transition-colors duration-300" />
+            <div key={idx} className="scout-feature-box group">
+              <div className="icon-container">
+                <value.icon className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-4">{value.title}</h3>
-              <p className="text-slate-300 leading-relaxed font-normal">
+              <h4 className="text-xl font-bold text-white mb-3 group-hover:text-volt transition-colors">{value.title}</h4>
+              <p className="text-slate-300 leading-relaxed font-normal text-sm">
                 {value.description}
               </p>
             </div>
@@ -226,16 +276,17 @@ export default function About() {
           {categories.map((category) => {
             const IconComponent = CAT_ICONS[category.icon] || HelpCircle;
             return (
-              <Link key={category.id} to={`/products?category=${category.slug}`} className="group">
-                <div className="glass-card p-6 rounded-3xl flex items-start gap-4 border border-white/10 hover:border-volt/40 transition-all duration-300 h-full">
-                  <div className="p-3 rounded-2xl bg-dark-2 text-volt shrink-0 group-hover:bg-volt/10 transition-colors border border-white/10">
-                    <IconComponent className="w-6 h-6" />
+              <Link key={category.id} to={`/products?category=${category.slug}`} className="group block">
+                <div className="scout-feature-box p-6 flex items-start gap-4 h-full text-left">
+                  <div className="icon-container !w-12 !h-12 shrink-0 !m-0">
+                    <IconComponent className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-white mb-2 group-hover:text-volt transition-colors">{category.name}</h4>
+                    <h4 className="text-lg font-bold text-white mb-1.5 group-hover:text-volt transition-colors">{category.name}</h4>
                     <p className="text-slate-300 text-sm line-clamp-2 font-normal leading-relaxed">{category.description}</p>
-                    <div className="flex items-center gap-1 mt-4 text-volt text-sm font-semibold opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-                      Explore Category <ArrowRight className="w-4 h-4" />
+                    <div className="flex items-center gap-1.5 mt-3 text-volt text-xs font-bold uppercase tracking-wider">
+                      <span>Explore Series</span>
+                      <ArrowRight className="w-3.5 h-3.5 scout-arrow-hover" />
                     </div>
                   </div>
                 </div>
@@ -245,8 +296,9 @@ export default function About() {
         </div>
         
         <div className="mt-12 text-center">
-          <Link to="/products" className="btn-primary py-3.5 px-8 rounded-full font-bold shadow-xl">
-            View All Products
+          <Link to="/products" className="btn-scout-discover">
+            <span>View All Products</span>
+            <ArrowRight className="w-4 h-4 scout-arrow-hover" />
           </Link>
         </div>
       </Section>

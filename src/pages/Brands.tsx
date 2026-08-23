@@ -20,11 +20,30 @@ export default function Brands() {
     return cat ? cat.name : catId;
   };
 
+  // Generative Engine Optimization (GEO) Schema for Brand Partnerships
+  const brandsSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Authorized Electrical Brand Partners at Sai Enterprises',
+    description: 'Wholesale authorized electrical brands available in Rourkela, Odisha including PM CONA, Havells, Polycab, and Finolex.',
+    itemListElement: brands.map((brand, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'Brand',
+        name: brand.name,
+        description: brand.description || `Genuine ${brand.name} electrical products and supplies distributed by Sai Enterprises in Rourkela.`,
+        logo: brand.logo || '',
+      },
+    })),
+  };
+
   return (
     <div className="pt-24 min-h-screen">
       <SEO 
         title="Authorized Electrical Brands & PM CONA Dealer in Rourkela | Sai Enterprises"
         description="Explore authorized electrical brands at Sai Enterprises Rourkela. Authorized dealer for PM CONA, Havells, Polycab, Finolex & Anchor at wholesale prices."
+        jsonLd={brandsSchema}
       />
       {/* Hero Section */}
       <Section className="relative overflow-hidden pt-12 pb-20">
@@ -65,7 +84,7 @@ export default function Brands() {
             {brands.map((brand, index) => (
               <div 
                 key={brand.id}
-                className={`glass-card relative overflow-hidden group flex flex-col rounded-3xl border border-white/10 hover:border-volt/40 transition-all duration-300 ${
+                className={`scout-shimmer-card glass-card relative overflow-hidden group flex flex-col rounded-3xl border border-white/10 hover:border-volt/40 transition-all duration-300 ${
                   brand.isAuthorized 
                     ? 'p-8 md:p-10 border-green-500/30 shadow-[0_0_30px_rgba(34,197,94,0.1)]' 
                     : 'p-6 md:p-8'
@@ -124,8 +143,8 @@ export default function Brands() {
                     to={`/products?brand=${brand.slug}`}
                     className="inline-flex items-center gap-2 text-white hover:text-volt transition-colors font-bold group/link text-sm md:text-base"
                   >
-                    View Products
-                    <ArrowRight className="w-4 h-4 group-hover/link:translate-x-1 transition-transform text-volt" />
+                    <span>View Products</span>
+                    <ArrowRight className="w-4 h-4 scout-arrow-hover text-volt" />
                   </Link>
                 </div>
               </div>

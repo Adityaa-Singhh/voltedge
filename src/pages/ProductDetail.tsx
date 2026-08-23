@@ -111,7 +111,7 @@ export default function ProductDetail() {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": product.name,
-    "description": product.description || product.shortDescription,
+    "description": product.description || product.shortDescription || `Buy genuine ${product.name} by ${product.brand} at wholesale prices from Sai Enterprises in Rourkela, Odisha.`,
     "image": product.images && product.images.length > 0 ? product.images[0] : "",
     "brand": {
       "@type": "Brand",
@@ -119,7 +119,35 @@ export default function ProductDetail() {
     },
     "category": product.category,
     "sku": product.id,
-    "url": `https://saienterprises.in/products/${product.slug}`
+    "url": `https://saienterprises-90c6b.web.app/products/${product.slug}`,
+    "offers": {
+      "@type": "AggregateOffer",
+      "priceCurrency": "INR",
+      "price": "0.00",
+      "priceValidUntil": "2027-12-31",
+      "itemCondition": "https://schema.org/NewCondition",
+      "availability": product.inStock !== false ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "seller": {
+        "@type": "LocalBusiness",
+        "name": "Sai Enterprises",
+        "telephone": "+91 94370 12345",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Near Bank of India, TCI Chowk",
+          "addressLocality": "Rourkela",
+          "addressRegion": "Odisha",
+          "postalCode": "769004",
+          "addressCountry": "IN"
+        }
+      },
+      "areaServed": [
+        "Rourkela",
+        "Sundargarh",
+        "Jharsuguda",
+        "Rajgangpur",
+        "Odisha"
+      ]
+    }
   };
 
   const breadcrumbSchema = {
@@ -130,25 +158,25 @@ export default function ProductDetail() {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://saienterprises.in/"
+        "item": "https://saienterprises-90c6b.web.app/"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Products",
-        "item": "https://saienterprises.in/products"
+        "item": "https://saienterprises-90c6b.web.app/products"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": product.category,
-        "item": `https://saienterprises.in/products?category=${product.categorySlug}`
+        "item": `https://saienterprises-90c6b.web.app/products?category=${product.categorySlug}`
       },
       {
         "@type": "ListItem",
         "position": 4,
         "name": product.name,
-        "item": `https://saienterprises.in/products/${product.slug}`
+        "item": `https://saienterprises-90c6b.web.app/products/${product.slug}`
       }
     ]
   };
@@ -385,7 +413,7 @@ export default function ProductDetail() {
               {relatedProducts.map((p) => (
                 <Link 
                   key={p.id}
-                  to={`/products/${p.slug}`}
+                  to={`/products/${p.slug || p.id}`}
                   onClick={() => trackProductClick({ id: p.id, name: p.name, category: p.category, brand: p.brand }, 'related_products')}
                   className="glass-card rounded-2xl overflow-hidden group hover:border-volt/50 transition-all duration-300 flex flex-col h-full border border-white/10 bg-dark-2/90 hover:bg-dark-2 shadow-xl"
                 >

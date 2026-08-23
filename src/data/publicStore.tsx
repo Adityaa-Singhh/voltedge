@@ -170,10 +170,25 @@ export function PublicStoreProvider({ children }: { children: ReactNode }) {
             };
           }
 
+          // Merge categories
+          const mergedCatMap = new Map<string, Category>();
+          initialCategories.forEach(c => mergedCatMap.set(c.slug || c.id, c));
+          cats.forEach(c => mergedCatMap.set(c.slug || c.id, c));
+
+          // Merge brands
+          const mergedBrandMap = new Map<string, Brand>();
+          initialBrands.forEach(b => mergedBrandMap.set(b.slug || b.id, b));
+          brs.forEach(b => mergedBrandMap.set(b.slug || b.id, b));
+
+          // Merge featured products
+          const mergedProdMap = new Map<string, Product>();
+          initialProducts.filter(p => p.isFeatured).forEach(p => mergedProdMap.set(p.id, p));
+          prods.filter(p => p.isFeatured).forEach(p => mergedProdMap.set(p.id, p));
+
           setState({
-            featuredProducts: prods.length ? prods : initialProducts.filter(p => p.isFeatured).slice(0, 4),
-            categories: cats.length ? cats : initialCategories,
-            brands: brs.length ? brs : initialBrands,
+            featuredProducts: Array.from(mergedProdMap.values()),
+            categories: Array.from(mergedCatMap.values()),
+            brands: Array.from(mergedBrandMap.values()),
             gallery: gals.length ? gals : initialGallery,
             testimonials: tests.length ? tests : initialTestimonials,
             faqs: faqList.length ? faqList : initialFaqs,

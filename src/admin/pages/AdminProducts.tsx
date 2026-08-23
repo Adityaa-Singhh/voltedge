@@ -10,7 +10,11 @@ import {
   X, 
   Download, 
   ShieldCheck, 
-  Star
+  Star,
+  RefreshCw,
+  RotateCcw,
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
 import { useAdminStore } from '../data/adminStore';
 import { AdminBreadcrumbs, ConfirmationModal } from '../components/AdminUI';
@@ -18,7 +22,16 @@ import { type Product } from '../../data';
 import { useAuth } from '../context/AuthContext';
 
 export const AdminProducts: React.FC = () => {
-  const { products, categories, brands, deleteProduct, toggleProductStock, toggleProductFeatured } = useAdminStore();
+  const { 
+    products, 
+    categories, 
+    brands, 
+    deleteProduct, 
+    toggleProductStock, 
+    toggleProductFeatured,
+    syncCodebaseProducts,
+    resetToFactoryDefaults
+  } = useAdminStore();
   const { hasPermission } = useAuth();
   const navigate = useNavigate();
 
@@ -28,9 +41,12 @@ export const AdminProducts: React.FC = () => {
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN_STOCK' | 'OUT_OF_STOCK'>('ALL');
   const [featuredFilter, setFeaturedFilter] = useState<'ALL' | 'FEATURED'>('ALL');
   
-  // Modals
+  // Modals & Action States
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncSuccessMessage, setSyncSuccessMessage] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const canEdit = hasPermission('products.edit');
   const canDelete = hasPermission('products.delete');
@@ -73,9 +89,43 @@ export const AdminProducts: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  const handleSyncCodebase = async () => {
+    try {
+      setIsSyncing(true);
+      await syncCodebaseProducts();
+      setSyncSuccessMessage('Codebase products synced to database & deleted overrides restored!');
+      setTimeout(() => setSyncSuccessMessage(null), 4000);
+    } catch (err: any) {
+      alert('Failed to sync codebase products: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleResetDefaults = async () => {
+    try {
+      setIsSyncing(true);
+      await resetToFactoryDefaults();
+      setShowResetConfirm(false);
+      setSyncSuccessMessage('Store catalogue reset to codebase factory defaults!');
+      setTimeout(() => setSyncSuccessMessage(null), 4000);
+    } catch (err: any) {
+      alert('Failed to reset defaults: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <AdminBreadcrumbs items={[{ label: 'Admin' }, { label: 'Inventory & Products', active: true }]} />
+
+      {syncSuccessMessage && (
+        <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-3 animate-scale-in">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <span className="font-bold">{syncSuccessMessage}</span>
+        </div>
+      )}
 
       {/* Header with Title and Add Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -91,15 +141,37 @@ export const AdminProducts: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={handleExportCSV}
             className="btn-secondary py-2.5 px-4 rounded-full text-xs font-bold text-white border border-white/10 flex items-center gap-1.5"
             title="Export CSV"
           >
             <Download className="w-3.5 h-3.5 text-volt" />
-            <span>Export CSV</span>
+            <span className="hidden sm:inline">Export CSV</span>
           </button>
+
+          <button
+            onClick={handleSyncCodebase}
+            disabled={isSyncing}
+            className="py-2.5 px-4 rounded-full text-xs font-bold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 flex items-center gap-1.5 transition-all disabled:opacity-50"
+            title="Sync products added in codebase to database"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>Sync Code Products</span>
+          </button>
+
+          {canDelete && (
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              disabled={isSyncing}
+              className="py-2.5 px-4 rounded-full text-xs font-bold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 flex items-center gap-1.5 transition-all disabled:opacity-50"
+              title="Reset products catalogue to factory defaults"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Reset Defaults</span>
+            </button>
+          )}
 
           {canCreate && (
             <Link
@@ -283,6 +355,16 @@ export const AdminProducts: React.FC = () => {
                     {/* Actions */}
                     <td className="py-3.5 px-5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        <a
+                          href={`/products/${product.slug || product.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-xl bg-white/5 hover:bg-volt/20 text-slate-300 hover:text-volt transition-colors"
+                          title="View Live Product Page"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+
                         <button
                           onClick={() => setPreviewProduct(product)}
                           className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
@@ -337,6 +419,19 @@ export const AdminProducts: React.FC = () => {
           title="Delete Product"
           message={`Are you sure you want to delete "${deleteTarget.name}"? This product will be immediately removed from the customer-facing catalogue.`}
           confirmText="Yes, Delete Product"
+          variant="danger"
+        />
+      )}
+
+      {/* Reset Defaults Confirmation Modal */}
+      {showResetConfirm && (
+        <ConfirmationModal
+          isOpen={showResetConfirm}
+          onClose={() => setShowResetConfirm(false)}
+          onConfirm={handleResetDefaults}
+          title="Reset Products Catalogue to Defaults"
+          message="Are you sure you want to reset the product catalogue to default factory state? This will restore original codebase items and clear deleted product overrides."
+          confirmText="Yes, Reset to Defaults"
           variant="danger"
         />
       )}

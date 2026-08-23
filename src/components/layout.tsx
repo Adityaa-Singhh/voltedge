@@ -224,8 +224,30 @@ export default function Navbar({ onQuote }: { onQuote: () => void }) {
               </Link>
             )
           )}
-          <div className="pt-2">
-            <PWAInstallButton className="w-full justify-center py-3" />
+          <div className="pt-3 border-t border-white/10 flex flex-col gap-2.5">
+            <button
+              onClick={() => {
+                trackQuoteModalOpen('navbar_mobile');
+                setMenuOpen(false);
+                onQuote();
+              }}
+              className="w-full bg-gradient-to-r from-volt to-volt-dim text-dark-0 text-sm font-bold py-3 rounded-2xl shadow-[0_4px_25px_rgba(0,229,255,0.35)] flex items-center justify-center gap-2"
+            >
+              <Zap size={16} className="text-dark-0" />
+              <span>Get a Wholesale Quote</span>
+            </button>
+            <a
+              href={getPhoneUrl()}
+              onClick={() => {
+                trackPhoneCallClick('navbar_mobile_menu');
+                setMenuOpen(false);
+              }}
+              className="w-full liquid-glass text-white text-sm font-semibold py-2.5 rounded-2xl flex items-center justify-center gap-2 border border-white/10"
+            >
+              <Phone size={15} className="text-volt" />
+              <span>Call Us Directly</span>
+            </a>
+            <PWAInstallButton className="w-full justify-center py-2.5" />
           </div>
         </div>
       )}

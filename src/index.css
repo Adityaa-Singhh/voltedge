@@ -952,3 +952,455 @@ html:not(.dark) .saas-glow-card {
 .img-zoom:hover img {
   transform: scale(1.08);
 }
+
+/* ===== EXACT SCOUT TEMPLATE ANIMATION & COMPONENT SYSTEM ===== */
+
+/* 1. Scout Feature Box (Vision & Values) */
+.scout-feature-box {
+  background: var(--surface-card, rgba(17, 17, 24, 0.75));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  height: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+html:not(.dark) .scout-feature-box {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+}
+
+.scout-feature-box::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.04) 0%, rgba(0, 229, 255, 0.12) 100%);
+  z-index: -1;
+  transition: height 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+  border-radius: 16px;
+}
+
+.scout-feature-box:hover {
+  transform: translateY(-8px);
+  border-color: rgba(0, 229, 255, 0.35);
+  box-shadow: 0 20px 40px -15px rgba(0, 229, 255, 0.18);
+}
+
+.scout-feature-box:hover::before {
+  height: 100%;
+}
+
+.scout-feature-box .icon-container {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(0, 229, 255, 0.12);
+  color: #00e5ff;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 1.75rem;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 5px 15px rgba(0, 229, 255, 0.15);
+}
+
+.scout-feature-box:hover .icon-container {
+  background: #00e5ff;
+  color: #0a0a0f;
+  border-color: transparent;
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 229, 255, 0.5);
+}
+
+@media (max-width: 767px) {
+  .scout-feature-box {
+    padding: 1.75rem 1.25rem;
+  }
+  .scout-feature-box .icon-container {
+    width: 56px;
+    height: 56px;
+    font-size: 1.4rem;
+  }
+}
+
+/* 2. Scout Progress Capability Bars */
+.scout-progress-item {
+  margin-bottom: 1.25rem;
+}
+
+.scout-progress-item .progress-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+html:not(.dark) .scout-progress-item .progress-title {
+  color: #0f172a;
+}
+
+.scout-progress-item .progress-percent {
+  font-weight: 700;
+  color: #00e5ff;
+}
+
+.scout-progress-item .progress-track {
+  height: 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.08);
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+html:not(.dark) .scout-progress-item .progress-track {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.scout-progress-item .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00e5ff 0%, #3b82f6 100%);
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+/* 3. Scout Discover Button */
+.btn-scout-discover {
+  background: #00e5ff;
+  color: #0a0a0f !important;
+  border: none;
+  border-radius: 50px;
+  padding: 0.8rem 2rem;
+  font-weight: 700;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 18px rgba(0, 229, 255, 0.3);
+}
+
+.btn-scout-discover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.15);
+  transition: width 0.35s ease;
+  z-index: -1;
+  border-radius: 50px;
+}
+
+.btn-scout-discover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0, 229, 255, 0.5);
+}
+
+.btn-scout-discover:hover::before {
+  width: 100%;
+}
+
+/* 4. Scout Brand Clients Slide with Light-Beam Pass */
+.scout-clients-slide {
+  flex: 0 0 auto;
+  min-width: 180px;
+  height: 85px;
+  margin: 0 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(17, 17, 24, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+html:not(.dark) .scout-clients-slide {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.scout-clients-slide::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+.scout-clients-slide:hover {
+  transform: translateY(-5px);
+  border-color: rgba(0, 229, 255, 0.4);
+  box-shadow: 0 10px 25px rgba(0, 229, 255, 0.15);
+}
+
+.scout-clients-slide:hover::before {
+  left: 100%;
+}
+
+@media (max-width: 767px) {
+  .scout-clients-slide {
+    min-width: 140px;
+    height: 70px;
+    margin: 0 10px;
+  }
+}
+
+/* 5. Scout How We Work / Step Timeline (Desktop Alternating, Mobile Left-Aligned) */
+.scout-steps-wrapper {
+  position: relative;
+  padding: 20px 0;
+}
+
+.scout-steps-wrapper::before {
+  content: '';
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(0, 229, 255, 0.5) 0%, rgba(59, 130, 246, 0.3) 100%);
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.scout-step-item {
+  margin-bottom: 40px;
+  width: 100%;
+  position: relative;
+}
+
+.scout-step-item:last-child {
+  margin-bottom: 0;
+}
+
+.scout-step-content {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.scout-step-item:nth-child(even) .scout-step-content {
+  flex-direction: row-reverse;
+}
+
+.scout-step-icon {
+  flex-shrink: 0;
+  width: 76px;
+  height: 76px;
+  background-color: rgba(17, 17, 24, 0.95);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(0, 229, 255, 0.4);
+  transition: all 0.35s ease-in-out;
+  color: #00e5ff;
+}
+
+html:not(.dark) .scout-step-icon {
+  background-color: #ffffff;
+}
+
+.scout-step-item:hover .scout-step-icon {
+  transform: scale(1.08);
+  background: #00e5ff;
+  color: #0a0a0f;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.6);
+  border-color: transparent;
+}
+
+.scout-step-info {
+  flex: 1;
+  background-color: rgba(17, 17, 24, 0.75);
+  backdrop-filter: blur(16px);
+  padding: 24px 28px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+  transition: transform 0.35s ease-in-out, border-color 0.35s ease;
+}
+
+html:not(.dark) .scout-step-info {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.scout-step-info:hover {
+  transform: translateY(-5px);
+  border-color: rgba(0, 229, 255, 0.35);
+  box-shadow: 0 12px 30px rgba(0, 229, 255, 0.12);
+}
+
+.scout-step-number {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #00e5ff;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 991px) {
+  .scout-steps-wrapper::before {
+    left: 28px;
+  }
+  .scout-step-item:nth-child(even) .scout-step-content {
+    flex-direction: row !important;
+  }
+  .scout-step-icon {
+    width: 56px;
+    height: 56px;
+  }
+  .scout-step-info {
+    padding: 18px 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .scout-step-content {
+    gap: 16px;
+  }
+  .scout-step-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.1rem;
+  }
+}
+
+/* 6. Scout Testimonial Card */
+.scout-testimonial-card {
+  background-color: rgba(17, 17, 24, 0.75);
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+html:not(.dark) .scout-testimonial-card {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.scout-testimonial-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(0, 229, 255, 0.35);
+  box-shadow: 0 12px 30px rgba(0, 229, 255, 0.1);
+}
+
+/* 7. Scout FAQ Accordion */
+.scout-faq-item {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background-color: rgba(17, 17, 24, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+html:not(.dark) .scout-faq-item {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.scout-faq-item:hover {
+  border-color: rgba(0, 229, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 229, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.scout-faq-item .faq-header {
+  display: flex;
+  align-items: center;
+  padding: 18px 22px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.scout-faq-item .faq-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 14px;
+  background-color: rgba(0, 229, 255, 0.12);
+  color: #00e5ff;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.scout-faq-item .faq-toggle-icon {
+  font-size: 1.25rem;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease;
+  color: rgba(255, 255, 255, 0.4);
+  margin-left: 12px;
+}
+
+.scout-faq-item.active .faq-toggle-icon {
+  transform: rotate(45deg);
+  color: #00e5ff;
+}
+
+.scout-faq-item .faq-body {
+  padding: 0 22px 18px 64px;
+}
+
+@media (max-width: 767px) {
+  .scout-faq-item .faq-header {
+    padding: 14px 16px;
+  }
+  .scout-faq-item .faq-body {
+    padding: 0 16px 14px 16px;
+  }
+}
+
+/* 8. Scout Arrow Micro-interaction */
+.scout-arrow-hover {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*:hover > .scout-arrow-hover,
+button:hover .scout-arrow-hover,
+a:hover .scout-arrow-hover {
+  transform: translateX(5px);
+}
+
+
+

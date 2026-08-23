@@ -12,7 +12,9 @@ import {
   ShieldCheck,
   UploadCloud,
   Loader2,
-  X
+  X,
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
 import { useAdminStore } from '../data/adminStore';
 import { uploadProductImage } from '../../services/storageService';
@@ -25,7 +27,7 @@ export const AdminProductEdit: React.FC = () => {
   const { products, categories, brands, addProduct, updateProduct } = useAdminStore();
 
   const isEditMode = Boolean(id && id !== 'new');
-  const existingProduct = products.find((p) => p.id === id);
+  const existingProduct = products.find((p) => p.id === id || p.slug === id);
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -50,13 +52,24 @@ export const AdminProductEdit: React.FC = () => {
 
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'specs' | 'media' | 'settings'>('basic');
+  const [isSlugCustom, setIsSlugCustom] = useState(false);
 
   const DRAFT_KEY = 'saienterprises_draft_new_product';
+
+  const sanitizeSlug = (val: string) => {
+    return val
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
 
   useEffect(() => {
     if (isEditMode && existingProduct) {
       setName(existingProduct.name);
-      setSlug(existingProduct.slug);
+      setSlug(existingProduct.slug || sanitizeSlug(existingProduct.name));
+      setIsSlugCustom(!!existingProduct.slug);
       setBrand(existingProduct.brand);
       setCategory(existingProduct.category);
       setDescription(existingProduct.description || '');
@@ -83,7 +96,10 @@ export const AdminProductEdit: React.FC = () => {
         if (savedDraft) {
           const draft = JSON.parse(savedDraft);
           if (draft.name) setName(draft.name);
-          if (draft.slug) setSlug(draft.slug);
+          if (draft.slug) {
+            setSlug(draft.slug);
+            setIsSlugCustom(true);
+          }
           if (draft.brand) setBrand(draft.brand);
           if (draft.category) setCategory(draft.category);
           if (draft.description) setDescription(draft.description);
@@ -117,11 +133,24 @@ export const AdminProductEdit: React.FC = () => {
     }
   }, [isEditMode, savedSuccess, name, slug, brand, category, description, shortDescription, heroImage, specsImage, bannerImage, inStock, isFeatured, isNew, specs]);
 
-  // Auto-generate slug when name changes in new mode
+  // Auto-generate slug when name changes in new mode (unless manually customized)
   const handleNameChange = (val: string) => {
     setName(val);
-    if (!isEditMode) {
-      setSlug(val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+    if (!isEditMode && !isSlugCustom) {
+      setSlug(sanitizeSlug(val));
+    }
+  };
+
+  const handleManualSlugChange = (val: string) => {
+    setIsSlugCustom(true);
+    setSlug(val.toLowerCase().replace(/\s+/g, '-'));
+  };
+
+  const handleRegenerateSlug = () => {
+    if (name.trim()) {
+      const generated = sanitizeSlug(name);
+      setSlug(generated);
+      setIsSlugCustom(true);
     }
   };
 
@@ -162,19 +191,21 @@ export const AdminProductEdit: React.FC = () => {
     const selectedBrandObj = brands.find(b => b.name === brand) || brands[0];
 
     const cleanSpecs = specs.filter(s => s.label.trim() !== '' && s.value.trim() !== '');
+    const finalSlug = sanitizeSlug(slug || name);
 
-    const productPayload: Omit<Product, 'id'> = {
-      name,
-      slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    const productPayload: Omit<Product, 'id'> & { published?: boolean } = {
+      name: name.trim(),
+      slug: finalSlug,
       brand,
       brandSlug: selectedBrandObj ? selectedBrandObj.slug : 'pmcona',
       category,
       categorySlug: selectedCatObj ? selectedCatObj.slug : 'switches',
-      description,
-      shortDescription: shortDescription || description.slice(0, 80),
+      description: description.trim(),
+      shortDescription: (shortDescription || description).slice(0, 120).trim(),
       inStock,
       isFeatured,
       isNew,
+      published: true,
       images: heroImage ? [heroImage] : [],
       sectionImages: {
         hero: heroImage,
@@ -186,8 +217,9 @@ export const AdminProductEdit: React.FC = () => {
     };
 
     try {
-      if (isEditMode && id) {
-        await updateProduct(id, productPayload);
+      const targetId = existingProduct?.id || id;
+      if (isEditMode && targetId) {
+        await updateProduct(targetId, productPayload);
       } else {
         await addProduct(productPayload);
         localStorage.removeItem(DRAFT_KEY);
@@ -325,6 +357,9 @@ export const AdminProductEdit: React.FC = () => {
                     {brands.map(b => (
                       <option key={b.id} value={b.name}>{b.name}</option>
                     ))}
+                    {brand && !brands.some(b => b.name === brand) && (
+                      <option value={brand}>{brand}</option>
+                    )}
                   </select>
                 </div>
 
@@ -340,22 +375,61 @@ export const AdminProductEdit: React.FC = () => {
                     {categories.map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
+                    {category && !categories.some(c => c.name === category) && (
+                      <option value={category}>{category}</option>
+                    )}
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider block mb-1.5">
-                  URL Slug
-                </label>
-                <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs text-slate-400">
-                  <span>/products/</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    URL Slug (Web Page Address) *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleRegenerateSlug}
+                    className="inline-flex items-center gap-1 text-[11px] text-volt hover:underline font-semibold transition-colors"
+                    title="Auto-generate clean slug from Product Name"
+                  >
+                    <RefreshCw size={11} /> Auto-generate from Name
+                  </button>
+                </div>
+                <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-xs text-slate-400 focus-within:border-volt/50 focus-within:ring-1 focus-within:ring-volt/30 transition-all">
+                  <span className="text-slate-500 font-mono select-none">/products/</span>
                   <input
                     type="text"
                     value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    className="bg-transparent text-white font-mono flex-grow focus:outline-none ml-1"
+                    onChange={(e) => handleManualSlugChange(e.target.value)}
+                    placeholder="e.g. pm-cona-status-6ax-switch"
+                    className="bg-transparent text-white font-mono flex-grow focus:outline-none ml-1 placeholder-slate-600"
                   />
+                  {slug && (
+                    <button
+                      type="button"
+                      onClick={() => setSlug(sanitizeSlug(slug))}
+                      className="text-[10px] bg-white/10 hover:bg-white/20 text-slate-300 px-2 py-0.5 rounded-lg ml-2 transition-colors flex-shrink-0"
+                      title="Clean and format slug"
+                    >
+                      Format
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-1.5 text-[11px] text-slate-400 px-1">
+                  <span>
+                    Full Link: <strong className="text-volt font-mono font-medium">/products/{slug || sanitizeSlug(name) || 'product-slug'}</strong>
+                  </span>
+                  {(slug || (existingProduct && existingProduct.slug)) && (
+                    <a
+                      href={`/products/${slug || existingProduct?.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-volt hover:underline font-semibold flex-shrink-0"
+                    >
+                      View Live Page <ExternalLink size={11} />
+                    </a>
+                  )}
                 </div>
               </div>
 

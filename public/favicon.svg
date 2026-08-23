@@ -5,23 +5,15 @@
       <stop offset="100%" stop-color="#050810"/>
     </linearGradient>
     <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00ffff"/>
-      <stop offset="100%" stop-color="#00b4d8"/>
+      <stop offset="0%" stop-color="#CCFF00"/>
+      <stop offset="100%" stop-color="#88BB00"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="0" stdDeviation="16" flood-color="#00e5ff" flood-opacity="0.6"/>
-    </filter>
   </defs>
-  
-  <!-- Outer Rounded Container -->
   <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
-  <rect width="504" height="504" x="4" y="4" rx="124" stroke="#00e5ff" stroke-width="8" stroke-opacity="0.3"/>
-  
-  <!-- Electric Energy Bolt (Centered) -->
-  <path d="M340 120 L210 370 h-30 l60 -120 H150 l120 -130 h70 z" 
-        fill="url(#boltGrad)" 
-        stroke="#00ffff" 
-        stroke-width="6" 
-        stroke-linejoin="round"
-        filter="url(#glow)"/>
+  <rect width="504" height="504" x="4" y="4" rx="124" stroke="#CCFF00" stroke-width="6" stroke-opacity="0.4"/>
+  <path d="M330 80 L195 300 h-40 l58 -110 H152 l128 -110 h50 z"
+        fill="url(#boltGrad)"
+        stroke="#CCFF00"
+        stroke-width="4"
+        stroke-linejoin="round"/>
 </svg>

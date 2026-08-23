@@ -1,4 +1,42 @@
+# Robots.txt for Sai Enterprises (Rourkela)
+# Explicitly allowing modern AI & Search Crawlers for Generative Engine Optimization (GEO)
+
 User-agent: *
 Allow: /
 Disallow: /admin
+
+# Google & Gemini Crawlers
+User-agent: Googlebot
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin
+
+# OpenAI / ChatGPT Search Crawlers
+User-agent: GPTBot
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin
+
+# Perplexity AI Crawlers
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin
+
+# Anthropic Claude Crawlers
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+Allow: /
+Disallow: /admin
+
+# Microsoft Bing & Copilot
+User-agent: Bingbot
+Allow: /
+Disallow: /admin
+
+# Apple Intelligence
+User-agent: Applebot
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+
 Sitemap: https://saienterprises-90c6b.web.app/sitemap.xml

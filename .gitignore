@@ -40,3 +40,6 @@ service-account.json
 *.cert
 firebase-debug.log*
 firestore-debug.log*
+.firebase/
+pdf_pages/
+Scout/

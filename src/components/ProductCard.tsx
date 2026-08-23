@@ -53,7 +53,7 @@ export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView 
   };
 
   return (
-    <div className={`w-full rounded-2xl bg-dark-2 border transition-all duration-300 relative overflow-hidden flex flex-col group ${
+    <div className={`scout-shimmer-card w-full rounded-2xl bg-dark-2 border transition-all duration-300 relative overflow-hidden flex flex-col group ${
       currentQty > 0
         ? 'border-volt/50 shadow-[0_4px_20px_rgba(0,229,255,0.12)]'
         : 'border-white/10 hover:border-volt/40 hover:shadow-[0_12px_28px_rgba(0,0,0,0.5),0_0_20px_rgba(0,229,255,0.08)]'
@@ -155,7 +155,7 @@ export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView 
         </div>
 
         {/* Title */}
-        <Link to={`/products/${product.slug}`} className="block">
+        <Link to={`/products/${product.slug || product.id}`} className="block">
           <h3 className="text-[13px] lg:text-[14.5px] font-extrabold text-white line-clamp-2 min-h-[34px] lg:min-h-[38px] mb-1.5 leading-tight group-hover:text-volt transition-colors">
             {product.name}
           </h3>
@@ -182,7 +182,7 @@ export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView 
 
           {/* On Mobile (2-col grid): Compact Arrow Details Button */}
           <Link
-            to={`/products/${product.slug}`}
+            to={`/products/${product.slug || product.id}`}
             className="sm:hidden w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white flex items-center justify-center transition-all active:scale-95 shrink-0 focus-visible:ring-2 focus-visible:ring-volt/50"
             aria-label={`View details for ${product.name}`}
             title="View Details"
@@ -192,11 +192,12 @@ export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView 
 
           {/* On Tablet & Desktop (>= sm): Full "View Details" text button */}
           <Link
-            to={`/products/${product.slug}`}
-            className="hidden sm:flex flex-1 py-2.5 min-h-[40px] lg:min-h-[42px] rounded-xl text-[11px] lg:text-xs font-extrabold bg-white/10 hover:bg-white/20 border border-white/10 text-white items-center justify-center transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-volt/50 text-center"
+            to={`/products/${product.slug || product.id}`}
+            className="hidden sm:flex flex-1 py-2.5 min-h-[40px] lg:min-h-[42px] rounded-xl text-[11px] lg:text-xs font-extrabold bg-white/10 hover:bg-white/20 border border-white/10 text-white items-center justify-center gap-1 transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-volt/50 text-center"
             aria-label={`View details for ${product.name}`}
           >
-            View Details
+            <span>View Details</span>
+            <ArrowRight className="w-3.5 h-3.5 scout-arrow-hover text-volt" />
           </Link>
         </div>
       </div>
@@ -228,7 +229,7 @@ export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView 
     : [];
 
   return (
-    <div className="w-full bg-dark-2/90 hover:bg-dark-2 border border-white/10 hover:border-volt/40 hover:shadow-[0_12px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(0,229,255,0.06)] rounded-2xl p-3 sm:p-4 lg:p-5 transition-all duration-300 flex flex-col md:flex-row gap-4 lg:gap-6 items-stretch group relative">
+    <div className="scout-shimmer-card w-full bg-dark-2/90 hover:bg-dark-2 border border-white/10 hover:border-volt/40 hover:shadow-[0_12px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(0,229,255,0.06)] rounded-2xl p-3 sm:p-4 lg:p-5 transition-all duration-300 flex flex-col md:flex-row gap-4 lg:gap-6 items-stretch group relative">
       
       {/* 1. VISUAL SHOWCASE (Mobile: 110px thumb, Desktop: 240px-288px wide aspect ratio - 15% increase) */}
       <div className="w-full sm:w-40 md:w-60 lg:w-72 h-36 sm:h-40 md:h-48 lg:h-52 rounded-xl overflow-hidden relative shrink-0 bg-gradient-to-br from-slate-800 to-slate-950 border border-white/5">
@@ -292,7 +293,7 @@ export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView 
           </div>
 
           {/* Title */}
-          <Link to={`/products/${product.slug}`} className="block">
+          <Link to={`/products/${product.slug || product.id}`} className="block">
             <h3 className="text-base lg:text-lg font-extrabold text-white line-clamp-1 group-hover:text-volt transition-colors mb-1.5">
               {product.name}
             </h3>
@@ -336,7 +337,7 @@ export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView 
         {/* Mobile-only CTA Row (Hidden on Desktop) */}
         <div className="flex sm:hidden gap-2 items-center pt-2 mt-auto border-t border-white/10">
           <Link
-            to={`/products/${product.slug}`}
+            to={`/products/${product.slug || product.id}`}
             className="flex-1 py-2 min-h-[38px] rounded-xl text-[11px] font-extrabold bg-white/10 hover:bg-white/20 border border-white/10 text-white flex items-center justify-center transition-all active:scale-95 text-center"
             aria-label={`View details for ${product.name}`}
           >
@@ -420,7 +421,7 @@ export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView 
           </a>
 
           <Link
-            to={`/products/${product.slug}`}
+            to={`/products/${product.slug || product.id}`}
             className="w-full py-1.5 min-h-[32px] rounded-xl text-xs font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white flex items-center justify-center gap-1 transition-all active:scale-95"
             aria-label={`View full specifications for ${product.name}`}
           >

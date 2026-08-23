@@ -146,6 +146,7 @@ interface AdminStoreContextType {
   updateHomepageContent: (content: Partial<HomepageContent>) => Promise<void>;
   loadMoreEnquiries: () => Promise<void>;
   resetToFactoryDefaults: () => Promise<void>;
+  syncCodebaseProducts: () => Promise<void>;
   logActivity: (action: string, resource: string, details?: string, status?: 'SUCCESS' | 'WARNING' | 'INFO') => void;
   clearActivities: () => void;
 }
@@ -270,15 +271,21 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const activeInitial = initialProducts.filter(p => !deletedIds.includes(p.id));
       const activeProds = prods.filter(p => !deletedIds.includes(p.id));
       
-      // Deduplicate products by slug
+      // Merge initial static products with Firestore products (Firestore updates take precedence)
       const uniqueProdMap = new Map<string, Product>();
-      for (const p of (snapshot.empty ? activeInitial : activeProds)) {
-        if (p.slug && !uniqueProdMap.has(p.slug)) {
-          uniqueProdMap.set(p.slug, p);
-        } else if (!p.slug && !uniqueProdMap.has(p.id)) {
-          uniqueProdMap.set(p.id, p);
-        }
+      
+      // 1. First add initial static products
+      for (const p of activeInitial) {
+        const key = p.id;
+        uniqueProdMap.set(key, p);
       }
+      
+      // 2. Overwrite / append with live Firestore products
+      for (const p of activeProds) {
+        const key = p.id;
+        uniqueProdMap.set(key, p);
+      }
+
       setProducts(Array.from(uniqueProdMap.values()));
     });
   }, []);
@@ -321,7 +328,18 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const activeInitial = initialCategories.filter(c => !deletedIds.includes(c.id));
       const activeCats = cats.filter(c => !deletedIds.includes(c.id));
-      setCategories(snapshot.empty ? activeInitial : activeCats);
+
+      const uniqueCatMap = new Map<string, Category>();
+      for (const c of activeInitial) {
+        const key = c.slug || c.id;
+        uniqueCatMap.set(key, c);
+      }
+      for (const c of activeCats) {
+        const key = c.slug || c.id;
+        uniqueCatMap.set(key, c);
+      }
+
+      setCategories(Array.from(uniqueCatMap.values()));
     });
   }, []);
 
@@ -364,7 +382,18 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const activeInitial = initialBrands.filter(b => !deletedIds.includes(b.id));
       const activeBrs = brs.filter(b => !deletedIds.includes(b.id));
-      setBrands(snapshot.empty ? activeInitial : activeBrs);
+
+      const uniqueBrandMap = new Map<string, Brand>();
+      for (const b of activeInitial) {
+        const key = b.slug || b.id;
+        uniqueBrandMap.set(key, b);
+      }
+      for (const b of activeBrs) {
+        const key = b.slug || b.id;
+        uniqueBrandMap.set(key, b);
+      }
+
+      setBrands(Array.from(uniqueBrandMap.values()));
     });
   }, []);
 
@@ -549,6 +578,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const actor = currentUser?.uid || 'unknown';
     const newId = await createProductService({
       ...prod,
+      published: true,
       brandId: '',
       categoryId: '',
       storagePaths: [],
@@ -557,7 +587,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } as any, actor);
 
     logActivity('Created Product', prod.name, `Category: ${prod.category}`);
-    return { ...prod, id: newId } as Product;
+    return { ...prod, id: newId, published: true } as Product;
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
@@ -833,6 +863,43 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     logActivity('Reset Database', 'Restored initial store seed data cleanly', '', 'WARNING');
   };
 
+  const syncCodebaseProducts = async () => {
+    localStorage.removeItem(KEY_DELETED_PRODS);
+
+    try {
+      const batch = writeBatch(db);
+      for (let i = 0; i < initialProducts.length; i++) {
+        const p = initialProducts[i];
+        const prodRef = doc(db, COLLECTIONS.PRODUCTS, p.id);
+        batch.set(prodRef, {
+          name: p.name,
+          slug: p.slug,
+          brand: p.brand,
+          brandId: '',
+          brandSlug: p.brandSlug,
+          category: p.category,
+          categoryId: '',
+          categorySlug: p.categorySlug,
+          description: p.description,
+          shortDescription: p.shortDescription || p.description.slice(0, 100),
+          specifications: p.specifications || [],
+          images: p.images || [],
+          storagePaths: [],
+          isFeatured: p.isFeatured || false,
+          isNew: p.isNew || false,
+          inStock: p.inStock ?? true,
+          published: true,
+          tags: p.tags || [],
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
+      await batch.commit();
+      logActivity('Synced Codebase Products', `${initialProducts.length} Products Synced to Database`);
+    } catch (e) {
+      console.warn('Sync codebase products note:', e);
+    }
+  };
+
   return React.createElement(
     AdminStoreContext.Provider,
     {
@@ -871,6 +938,7 @@ export const AdminStoreProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updateHomepageContent,
         loadMoreEnquiries,
         resetToFactoryDefaults,
+        syncCodebaseProducts,
         logActivity,
         clearActivities
       }

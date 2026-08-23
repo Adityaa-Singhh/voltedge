@@ -36,7 +36,9 @@ import {
   Package,
   Users,
   IndianRupee,
-  MessageSquare
+  MessageSquare,
+  Truck,
+  Plus
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
@@ -97,7 +99,9 @@ const Icons = {
   Package,
   Users,
   IndianRupee,
-  MessageSquare
+  MessageSquare,
+  Truck,
+  Plus
 };
 
 const CAT_ICONS: Record<string, any> = {
@@ -138,6 +142,7 @@ export default function Home({ onQuote }: HomeProps) {
   const [loadKw, setLoadKw] = useState<number>(6);
   const [phase, setPhase] = useState<'single' | 'three'>('single');
   const [activeCategoryTab, setActiveCategoryTab] = useState<'switches' | 'wires' | 'mcb' | 'lighting'>('switches');
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
   // Featured Products Sliding Window Carousel State
   const [productIndex, setProductIndex] = useState(0);
@@ -331,26 +336,36 @@ export default function Home({ onQuote }: HomeProps) {
             
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center justify-center pt-2">
-              <Link to="/products" className="btn-primary py-4 px-8 text-base font-bold rounded-full flex items-center justify-center gap-2 group shadow-[0_4px_25px_rgba(0,229,255,0.35)] hover:scale-105 transition-all w-full sm:w-auto">
+              <Link 
+                to="/products" 
+                className="btn-primary py-4 px-8 text-base font-semibold rounded-full flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-[0_0_25px_rgba(0,229,255,0.4)] w-full sm:w-auto"
+              >
                 <Icons.Layers className="w-5 h-5" />
-                Browse Catalog
-                <Icons.ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <span>Browse Catalog</span>
               </Link>
-              <button onClick={onQuote} className="btn-secondary py-4 px-8 text-base font-semibold rounded-full flex items-center justify-center gap-2 group hover:scale-105 transition-all w-full sm:w-auto">
+              <button 
+                onClick={onQuote} 
+                className="btn-secondary py-4 px-8 text-base font-semibold rounded-full flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg w-full sm:w-auto"
+              >
                 <Icons.Zap className="w-5 h-5 text-volt" />
-                Instant Quotation
+                <span>Instant Quotation</span>
               </button>
-              <a href={getWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="btn-whatsapp py-4 px-8 text-base font-semibold rounded-full flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg w-full sm:w-auto">
+              <a 
+                href={getWhatsAppUrl()} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn-whatsapp py-4 px-8 text-base font-semibold rounded-full flex items-center justify-center gap-2 hover:scale-105 transition-all shadow-lg w-full sm:w-auto"
+              >
                 <Icons.MessageCircle className="w-5 h-5" />
-                Direct WhatsApp Dispatch
+                <span>Direct WhatsApp Dispatch</span>
               </a>
             </div>
 
             {/* SaaS Interactive Telemetry & Configurator Card */}
             <motion.div 
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.2 }}
+              transition={{ duration: 0.7, delay: 0.15 }}
               className="saas-glow-card w-full max-w-4xl p-6 sm:p-8 mt-10 text-left"
             >
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-6 border-b border-white/10 gap-4">
@@ -615,7 +630,7 @@ export default function Home({ onQuote }: HomeProps) {
               >
                 <SpotlightCard className="h-full overflow-hidden group hover:border-volt/40 transition-all duration-300 shadow-xl">
                   <div className="flex flex-col h-full w-full">
-                    <Link to={`/products/${product.slug}`} className="block relative aspect-square overflow-hidden bg-dark-2">
+                    <Link to={`/products/${product.slug || product.id}`} className="block relative aspect-square overflow-hidden bg-dark-2">
                       <ProductImage 
                         src={product.images[0]} 
                         alt={product.name} 
@@ -629,14 +644,14 @@ export default function Home({ onQuote }: HomeProps) {
                     
                     <div className="p-6 flex flex-col flex-grow">
                       <div className="text-xs text-volt font-bold tracking-wider mb-2 uppercase">{product.brand}</div>
-                      <Link to={`/products/${product.slug}`} className="hover:text-volt transition-colors">
+                      <Link to={`/products/${product.slug || product.id}`} className="hover:text-volt transition-colors">
                         <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{product.name}</h3>
                       </Link>
                       <p className="text-sm text-slate-300 mb-6 line-clamp-2 font-normal leading-relaxed">{product.shortDescription}</p>
                       
                       <div className="mt-auto flex flex-col gap-3">
                         <Link
-                          to={`/products/${product.slug}`}
+                          to={`/products/${product.slug || product.id}`}
                           onClick={() => trackProductClick({ id: product.id, name: product.name, category: product.category, brand: product.brand }, 'home_carousel')}
                           className="btn-secondary w-full py-2.5 rounded-full text-sm font-semibold flex justify-center items-center gap-2"
                         >
@@ -706,31 +721,33 @@ export default function Home({ onQuote }: HomeProps) {
 
           {/* Row 1: Moving Left - Premier Brands */}
           <div className="relative flex overflow-x-hidden group">
-            <div className="animate-marquee-left group-hover:[animation-play-state:paused] py-1">
+            <div className="animate-marquee-left group-hover:[animation-play-state:paused] py-2 flex items-center">
               {[...brands, ...brands].map((brand, idx) => (
                 <Link 
                   key={`brand-r1-${brand.id}-${idx}`} 
                   to={`/brands/${brand.slug}`} 
-                  className={`mx-2 sm:mx-3 flex items-center gap-3 rounded-2xl border px-5 py-3 sm:px-7 sm:py-4 transition-all duration-300 min-w-[150px] sm:min-w-[190px] shadow-lg group/card ${
+                  className={`scout-clients-slide group/card ${
                     brand.slug === 'pmcona' 
-                      ? 'border-volt/60 bg-volt/10 hover:bg-volt/20 hover:border-volt shadow-[0_0_20px_rgba(0,229,255,0.15)]' 
-                      : 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'
+                      ? '!border-volt/60 !bg-volt/10 hover:!bg-volt/20' 
+                      : ''
                   }`}
                 >
-                  <div className="w-8 h-8 rounded-xl bg-dark-2 flex items-center justify-center text-volt border border-white/10 shrink-0 font-black text-sm">
-                    {brand.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="text-sm sm:text-base font-extrabold text-white group-hover/card:text-volt transition-colors whitespace-nowrap">
-                      {brand.name}
+                  <div className="flex items-center gap-3 px-4 w-full">
+                    <div className="w-8 h-8 rounded-xl bg-dark-2 flex items-center justify-center text-volt border border-white/10 shrink-0 font-black text-sm">
+                      {brand.name.charAt(0)}
                     </div>
-                    {brand.isAuthorized ? (
-                      <span className="text-[10px] sm:text-[11px] text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
-                        <Icons.ShieldCheck className="w-3 h-3 text-volt" /> Authorized
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400 font-medium">Genuine Supplier</span>
-                    )}
+                    <div className="text-left">
+                      <div className="text-sm font-extrabold text-white group-hover/card:text-volt transition-colors whitespace-nowrap">
+                        {brand.name}
+                      </div>
+                      {brand.isAuthorized ? (
+                        <span className="text-[10px] text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                          <Icons.ShieldCheck className="w-3 h-3 text-volt" /> Authorized
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-medium">Genuine Supplier</span>
+                      )}
+                    </div>
                   </div>
                 </Link>
               ))}
@@ -739,7 +756,7 @@ export default function Home({ onQuote }: HomeProps) {
 
           {/* Row 2: Moving Right - Product Solutions */}
           <div className="relative flex overflow-x-hidden group">
-            <div className="animate-marquee-right group-hover:[animation-play-state:paused] py-1">
+            <div className="animate-marquee-right group-hover:[animation-play-state:paused] py-2 flex items-center">
               {[
                 { name: 'PMCona Modular Switches', icon: Icons.ToggleLeft, tag: 'Official Distributor' },
                 { name: 'Industrial MCBs & RCCB DBs', icon: Icons.Cpu, tag: 'Safety Guaranteed' },
@@ -751,18 +768,20 @@ export default function Home({ onQuote }: HomeProps) {
               ].map((item, idx) => (
                 <div 
                   key={`solution-r2-${idx}`} 
-                  className="mx-2 sm:mx-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 hover:border-volt/40 hover:bg-white/10 px-5 py-3 sm:px-6 sm:py-3.5 transition-all duration-300 min-w-[200px] sm:min-w-[240px] shadow-lg group/sol"
+                  className="scout-clients-slide group/sol !min-w-[220px]"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-dark-2 flex items-center justify-center text-volt border border-white/10 shrink-0">
-                    <item.icon className="w-4 h-4 text-volt" />
-                  </div>
-                  <div>
-                    <div className="text-xs sm:text-sm font-bold text-white group-hover/sol:text-volt transition-colors whitespace-nowrap">
-                      {item.name}
+                  <div className="flex items-center gap-3 px-4 w-full text-left">
+                    <div className="w-8 h-8 rounded-xl bg-dark-2 flex items-center justify-center text-volt border border-white/10 shrink-0">
+                      <item.icon className="w-4 h-4 text-volt" />
                     </div>
-                    <span className="text-[10px] text-slate-400 font-medium tracking-wide">
-                      {item.tag}
-                    </span>
+                    <div>
+                      <div className="text-xs sm:text-sm font-bold text-white group-hover/sol:text-volt transition-colors whitespace-nowrap">
+                        {item.name}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium tracking-wide">
+                        {item.tag}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -778,18 +797,20 @@ export default function Home({ onQuote }: HomeProps) {
               ].map((item, idx) => (
                 <div 
                   key={`solution-r2-dup-${idx}`} 
-                  className="mx-2 sm:mx-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 hover:border-volt/40 hover:bg-white/10 px-5 py-3 sm:px-6 sm:py-3.5 transition-all duration-300 min-w-[200px] sm:min-w-[240px] shadow-lg group/sol"
+                  className="scout-clients-slide group/sol !min-w-[220px]"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-dark-2 flex items-center justify-center text-volt border border-white/10 shrink-0">
-                    <item.icon className="w-4 h-4 text-volt" />
-                  </div>
-                  <div>
-                    <div className="text-xs sm:text-sm font-bold text-white group-hover/sol:text-volt transition-colors whitespace-nowrap">
-                      {item.name}
+                  <div className="flex items-center gap-3 px-4 w-full text-left">
+                    <div className="w-8 h-8 rounded-xl bg-dark-2 flex items-center justify-center text-volt border border-white/10 shrink-0">
+                      <item.icon className="w-4 h-4 text-volt" />
                     </div>
-                    <span className="text-[10px] text-slate-400 font-medium tracking-wide">
-                      {item.tag}
-                    </span>
+                    <div>
+                      <div className="text-xs sm:text-sm font-bold text-white group-hover/sol:text-volt transition-colors whitespace-nowrap">
+                        {item.name}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium tracking-wide">
+                        {item.tag}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -798,7 +819,7 @@ export default function Home({ onQuote }: HomeProps) {
         </div>
       </section>
 
-      {/* 5. WHY CHOOSE US */}
+      {/* 5. WHY CHOOSE US (EXACT SCOUT FEATURE BOXES) */}
       <Section id="why-choose-us" className="relative">
         <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-volt/5 to-transparent pointer-events-none"></div>
         
@@ -810,18 +831,77 @@ export default function Home({ onQuote }: HomeProps) {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
           {whyChooseUs.map((feature, idx) => (
-            <SpotlightCard key={idx} className="p-8 group hover:-translate-y-1 transition-transform duration-300">
-              <div className="w-14 h-14 rounded-2xl bg-dark-2 border border-white/10 flex items-center justify-center mb-6 text-volt group-hover:scale-110 group-hover:bg-volt/10 transition-all duration-300 shadow-md">
+            <div key={idx} className="scout-feature-box group">
+              <div className="icon-container">
                 <IconComponent name={feature.icon} className="w-7 h-7" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
-              <p className="text-slate-300 leading-relaxed font-normal">{feature.description}</p>
-            </SpotlightCard>
+              <h4 className="text-xl font-bold text-white mb-3 group-hover:text-volt transition-colors">
+                {feature.title}
+              </h4>
+              <p className="text-slate-300 leading-relaxed font-normal text-sm mb-6">
+                {feature.description}
+              </p>
+              <div className="flex items-center justify-center gap-1.5 text-volt text-xs font-bold uppercase tracking-wider pt-3 border-t border-white/10 group-hover:border-volt/30 transition-colors">
+                <span>Verified Standard</span>
+                <Icons.ArrowRight className="w-4 h-4 scout-arrow-hover" />
+              </div>
+            </div>
           ))}
         </div>
       </Section>
 
-      {/* 6. ABOUT PREVIEW */}
+      {/* 5.5 3-STEP PROCUREMENT WORKFLOW (EXACT SCOUT HOW-WE-WORK TIMELINE) */}
+      <Section id="how-it-works" className="relative border-t border-white/5 bg-dark-1/60">
+        <SectionHeader 
+          label="Streamlined Process" 
+          title="How Wholesale Procurement Works" 
+          subtitle="Effortless 3-step workflow engineered for electrical contractors, builders, and regional retailers."
+        />
+
+        <div className="max-w-4xl mx-auto mt-12">
+          <div className="scout-steps-wrapper">
+            {[
+              {
+                step: '01',
+                title: 'Select Certified Series',
+                desc: 'Choose from 50+ authentic PM CONA switches, Polycab copper wires, Havells MCBs, and LED panels directly from our catalog.',
+                icon: Icons.Layers
+              },
+              {
+                step: '02',
+                title: 'Instant Load & BOM Quote',
+                desc: 'Calculate precise breaker ratings, build your Bill of Materials (BOM), and receive instant competitive wholesale project pricing.',
+                icon: Icons.FileText
+              },
+              {
+                step: '03',
+                title: 'Same-Day Warehouse Dispatch',
+                desc: 'Fast fulfillment and delivery across Rourkela, Sundargarh, and nearby Odisha districts with complete GST invoice and warranty.',
+                icon: Icons.Truck
+              }
+            ].map((item, idx) => (
+              <div key={idx} className="scout-step-item">
+                <div className="scout-step-content">
+                  <div className="scout-step-icon">
+                    <item.icon className="w-7 h-7" />
+                  </div>
+                  <div className="scout-step-info group">
+                    <span className="scout-step-number">Step {item.step}</span>
+                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-volt transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-slate-300 text-sm leading-relaxed font-normal">
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* 6. ABOUT PREVIEW WITH SCOUT CAPABILITY METRIC PROGRESS BARS */}
       <Section id="about" className="bg-dark-1">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="order-2 lg:order-1 flex flex-col gap-6">
@@ -833,12 +913,46 @@ export default function Home({ onQuote }: HomeProps) {
               {businessInfo.description}
             </p>
             <p className="text-slate-300 leading-relaxed font-normal">
-              Founded over {businessInfo.experience} years ago, {businessInfo.name} has grown from a small local shop to one of the region's most trusted distributors of electrical components. We pride ourselves on technical expertise, genuine products, and unmatched customer service.
+              Founded over {businessInfo.experience} years ago, {businessInfo.name} has grown from a small regional store near TCI Chowk to one of Odisha's most trusted wholesale distributors of electrical components.
             </p>
+
+            {/* Scout-style Capability Progress Bars */}
+            <div className="space-y-4 pt-2">
+              <div className="scout-progress-item">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="progress-title">100% Genuine Brand Authenticity (ISI / IEC Certified)</span>
+                  <span className="progress-percent">99.9%</span>
+                </div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: '99.9%' }}></div>
+                </div>
+              </div>
+
+              <div className="scout-progress-item">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="progress-title">Same-Day Wholesale Warehouse Dispatch</span>
+                  <span className="progress-percent">98.5%</span>
+                </div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: '98.5%' }}></div>
+                </div>
+              </div>
+
+              <div className="scout-progress-item">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="progress-title">B2B Client Satisfaction & Repeat Order Rate</span>
+                  <span className="progress-percent">99.2%</span>
+                </div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: '99.2%' }}></div>
+                </div>
+              </div>
+            </div>
             
             <div className="mt-4 flex gap-4">
-              <Link to="/about" className="btn-primary py-3.5 px-8 rounded-full flex items-center justify-center gap-2 font-bold shadow-xl">
-                Learn More About Us
+              <Link to="/about" className="btn-scout-discover">
+                <span>Learn More About Us</span>
+                <Icons.ArrowRight className="w-5 h-5 scout-arrow-hover" />
               </Link>
             </div>
           </div>
@@ -849,23 +963,25 @@ export default function Home({ onQuote }: HomeProps) {
               <div className="w-full h-full bg-dark-2 flex flex-col items-center justify-center text-slate-300 rounded-2xl border border-white/5 py-8">
                 <Icons.Building2 className="w-16 h-16 sm:w-24 sm:h-24 mb-4 text-volt opacity-70" />
                 <span className="text-lg sm:text-xl font-bold tracking-widest uppercase text-white">{businessInfo.name}</span>
+                <span className="text-xs text-slate-400 mt-1">Near Bank of India, TCI Chowk, Rourkela</span>
               </div>
             </div>
             
-            <div className="mt-4 sm:mt-0 sm:absolute sm:-bottom-6 sm:-left-6 glass-card p-4 sm:p-6 z-20 flex items-center gap-3 sm:gap-4 animate-bounce-slow rounded-3xl border border-white/15 shadow-2xl w-full sm:w-auto">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-volt/20 flex items-center justify-center text-volt shrink-0">
+            {/* Experience Trust Badge */}
+            <div className="mt-4 sm:mt-0 sm:absolute sm:-bottom-6 sm:-left-6 glass-card p-4 sm:p-5 rounded-2xl border border-white/15 z-20 flex items-center gap-3 sm:gap-4 w-full sm:w-auto shadow-xl">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-volt/15 flex items-center justify-center text-volt shrink-0 border border-volt/30">
                 <Icons.Award className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <div className="text-lg sm:text-2xl font-bold text-white leading-tight">Authorized</div>
-                <div className="text-xs sm:text-sm text-slate-300 font-medium">Distributor</div>
+                <div className="text-lg sm:text-xl font-bold text-white leading-tight">15+ Years</div>
+                <div className="text-xs text-slate-300 font-medium">Excellence & Trust</div>
               </div>
             </div>
           </div>
         </div>
       </Section>
 
-      {/* 7. TESTIMONIALS PREVIEW */}
+      {/* 7. TESTIMONIALS PREVIEW (EXACT SCOUT TESTIMONIAL CARDS) */}
       <Section id="testimonials">
         <SectionHeader 
           label="Testimonials" 
@@ -875,15 +991,24 @@ export default function Home({ onQuote }: HomeProps) {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           {featuredTestimonials.map((testimonial) => (
-            <div key={testimonial.id} className="glass-card p-8 rounded-3xl flex flex-col relative border border-white/10 hover:border-volt/40 transition-all">
-              <Icons.Quote className="absolute top-6 right-6 w-10 h-10 text-white/10" />
-              <StarRating rating={testimonial.rating} className="mb-6" />
-              <p className="text-slate-200 italic leading-relaxed mb-8 flex-grow font-normal">
-                "{testimonial.review}"
-              </p>
-              <div className="mt-auto">
-                <div className="font-bold text-white text-lg">{testimonial.name}</div>
-                <div className="text-sm text-volt font-semibold">{testimonial.role}</div>
+            <div key={testimonial.id} className="scout-testimonial-card group">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <StarRating rating={testimonial.rating} />
+                  <Icons.Quote className="w-8 h-8 text-white/10 group-hover:text-volt/30 transition-colors" />
+                </div>
+                <p className="text-slate-200 italic leading-relaxed mb-6 font-normal">
+                  "{testimonial.review}"
+                </p>
+              </div>
+              <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-white text-base">{testimonial.name}</div>
+                  <div className="text-xs text-volt font-semibold">{testimonial.role}</div>
+                </div>
+                <span className="text-[11px] px-2.5 py-1 rounded-full bg-volt/10 text-cyan-300 font-bold border border-volt/20">
+                  Verified Client
+                </span>
               </div>
             </div>
           ))}
@@ -931,20 +1056,22 @@ export default function Home({ onQuote }: HomeProps) {
         </div>
       </Section>
 
-      {/* 9. LOCATION & CONTACT */}
+      {/* 9. LOCATION & CONTACT PREVIEW */}
       <Section id="location">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 glass-card overflow-hidden rounded-3xl p-0 border border-white/10">
-          <div className="h-96 lg:h-auto min-h-[400px] w-full">
+        <SectionHeader 
+          label="Visit Store" 
+          title="Our Location & Details" 
+          subtitle="Stop by our warehouse or reach out to discuss your electrical product requirements."
+        />
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-12 glass-card rounded-3xl overflow-hidden border border-white/10">
+          <div className="h-96 lg:h-auto min-h-[350px] relative">
             <iframe 
               src={businessInfo.mapUrl}
-              width="100%" 
-              height="100%" 
-              style={{ border: 0 }} 
-              allowFullScreen={true} 
-              loading="lazy" 
-              referrerPolicy="no-referrer-when-downgrade"
+              className="w-full h-full border-0 absolute inset-0 filter invert-[0.9] hue-rotate-180 contrast-125"
+              loading="lazy"
               title="Sai Enterprises Location"
-              className="filter invert-[90%] hue-rotate-180 contrast-125 grayscale-[30%] opacity-80"
+              allowFullScreen
             ></iframe>
           </div>
           
@@ -994,7 +1121,7 @@ export default function Home({ onQuote }: HomeProps) {
         </div>
       </Section>
 
-      {/* 9.5 SEO & FAQ AUTHORITY SECTION */}
+      {/* 9.5 SEO & FAQ AUTHORITY SECTION (EXACT SCOUT INTERACTIVE ACCORDION) */}
       <Section id="faq" className="bg-dark-1 border-t border-white/5">
         <SectionHeader 
           label="Wholesale & Brand FAQs" 
@@ -1002,7 +1129,7 @@ export default function Home({ onQuote }: HomeProps) {
           subtitle="Everything you need to know about our wholesale electrical supply, PM CONA dealership, and project deliveries."
         />
 
-        <div className="max-w-4xl mx-auto mt-10 space-y-4">
+        <div className="max-w-4xl mx-auto mt-10 space-y-3">
           {[
             {
               q: "Who is the authorized PM CONA dealer in Rourkela?",
@@ -1020,17 +1147,31 @@ export default function Home({ onQuote }: HomeProps) {
               q: "Does Sai Enterprises offer bulk contractor and project discounts?",
               a: "Yes! We specialize in wholesale B2B pricing for builders, electrical contractors, commercial projects, and retail electrical store owners. Volume tiered discounts and instant GST invoices are provided on all orders."
             }
-          ].map((item, idx) => (
-            <div key={idx} className="glass-card p-6 rounded-2xl border border-white/10 hover:border-volt/40 transition-all">
-              <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-3">
-                <Icons.HelpCircle className="w-5 h-5 text-volt shrink-0" />
-                <span>{item.q}</span>
-              </h3>
-              <p className="text-sm sm:text-base text-slate-300 pl-8 font-normal leading-relaxed">
-                {item.a}
-              </p>
-            </div>
-          ))}
+          ].map((item, idx) => {
+            const isOpen = openFaqIndex === idx;
+            return (
+              <div 
+                key={idx} 
+                className={`scout-faq-item ${isOpen ? 'active' : ''}`}
+              >
+                <div 
+                  className="faq-header"
+                  onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                >
+                  <span className="faq-num">{idx + 1}</span>
+                  <span className="text-base sm:text-lg font-bold text-white flex-1">{item.q}</span>
+                  <Icons.Plus className="faq-toggle-icon w-6 h-6 flex-shrink-0" />
+                </div>
+                {isOpen && (
+                  <div className="faq-body">
+                    <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
+                      {item.a}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Section>
 

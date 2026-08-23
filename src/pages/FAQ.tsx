@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, MessageCircle, Phone } from 'lucide-react';
+import { MessageCircle, Phone } from 'lucide-react';
 import { Section, SectionHeader, useScrollReveal } from '../components/ui';
 import { getWhatsAppUrl, getPhoneUrl } from '../data';
 import { usePublicStore } from '../data/publicStore';
@@ -21,11 +21,26 @@ export default function FAQ() {
     setOpenFaqId(prev => (prev === id ? null : id));
   };
 
+  // Build Generative Engine Optimization (GEO) FAQPage Schema
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
+  };
+
   return (
     <div className="pt-24 pb-12 min-h-screen bg-dark-0 text-white">
       <SEO 
         title="Electrical Products FAQ | Sai Enterprises Rourkela"
-        description="Find answers to common questions about electrical products, brands, availability and enquiries at Sai Enterprises."
+        description="Find answers to common questions about electrical products, brands, availability, wholesale pricing, and delivery at Sai Enterprises."
+        jsonLd={faqSchema}
       />
       <Section id="faq-header" className="pt-12 pb-8">
         <SectionHeader 
@@ -54,39 +69,35 @@ export default function FAQ() {
       </Section>
 
       <Section id="faq-content" className="py-8">
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-3xl mx-auto space-y-3">
           {filteredFaqs.length > 0 ? (
-            filteredFaqs.map((faq) => (
-              <div 
-                key={faq.id} 
-                className={`glass-card rounded-3xl overflow-hidden transition-all duration-300 border border-white/10 ${
-                  openFaqId === faq.id 
-                    ? 'border-volt/40 shadow-[0_4px_25px_rgba(0,229,255,0.15)] bg-white/5' 
-                    : 'hover:border-volt/20'
-                }`}
-              >
-                <button
-                  onClick={() => toggleFaq(faq.id)}
-                  className="w-full flex items-center justify-between p-6 text-left focus:outline-none"
-                >
-                  <span className="text-lg font-bold text-white pr-4">{faq.question}</span>
-                  <ChevronDown 
-                    className={`w-5 h-5 text-volt transition-transform duration-300 flex-shrink-0 ${
-                      openFaqId === faq.id ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
+            filteredFaqs.map((faq, idx) => {
+              const isOpen = openFaqId === faq.id;
+              return (
                 <div 
-                  className={`transition-all duration-300 ease-in-out ${
-                    openFaqId === faq.id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                  }`}
+                  key={faq.id} 
+                  className={`scout-faq-item ${isOpen ? 'active' : ''}`}
                 >
-                  <div className="p-6 pt-0 text-slate-300 leading-relaxed border-t border-white/10 mt-2 font-normal">
-                    {faq.answer}
+                  <div 
+                    className="faq-header"
+                    onClick={() => toggleFaq(faq.id)}
+                  >
+                    <span className="faq-num">{idx + 1}</span>
+                    <span className="text-base sm:text-lg font-bold text-white flex-1">{faq.question}</span>
+                    <span className="faq-toggle-icon flex-shrink-0 text-xl font-light">
+                      {isOpen ? '×' : '+'}
+                    </span>
                   </div>
+                  {isOpen && (
+                    <div className="faq-body">
+                      <p className="text-sm sm:text-base text-slate-300 font-normal leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="text-center py-12 text-slate-300 glass-card rounded-3xl">
               No FAQs found for this category.

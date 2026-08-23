@@ -6,7 +6,7 @@ async function setupStorage() {
 
   const storage = new Storage({
     projectId: projectId,
-    keyFilename: 'service-account.json',
+    keyFilename: 'serviceAccountKey.json',
   });
 
   const corsConfiguration = [

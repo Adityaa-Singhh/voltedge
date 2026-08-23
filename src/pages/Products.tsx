@@ -532,7 +532,7 @@ const Products = () => {
 
                 <div className="pt-4 flex gap-3">
                   <Link 
-                    to={`/products/${quickViewProduct.slug}`}
+                    to={`/products/${quickViewProduct.slug || quickViewProduct.id}`}
                     onClick={() => setQuickViewProduct(null)}
                     className="btn-secondary flex-1 py-3 rounded-full text-xs font-bold flex justify-center items-center gap-2 border border-white/10"
                   >
