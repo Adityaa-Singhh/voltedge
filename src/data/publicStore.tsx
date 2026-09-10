@@ -209,6 +209,27 @@ export function PublicStoreProvider({ children }: { children: ReactNode }) {
     // 1. Initial Load
     fetchData(true);
 
+    // 1.1 Pre-warm Product Images in background cache
+    if (typeof window !== 'undefined') {
+      const warmImages = () => {
+        const imagesToPreload = initialProducts
+          .slice(0, 40)
+          .flatMap(p => p.images || [])
+          .filter(Boolean);
+        
+        imagesToPreload.forEach(src => {
+          const img = new Image();
+          img.src = src;
+        });
+      };
+      
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(warmImages, { timeout: 1500 });
+      } else {
+        setTimeout(warmImages, 400);
+      }
+    }
+
     // 2. Mobile Tab Wake-up & BFCache Rehydration Listeners
     const handleWakeup = () => {
       const isVisible = document.visibilityState === 'visible';

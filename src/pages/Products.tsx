@@ -4,7 +4,7 @@ import { Search, X, Package, SlidersHorizontal, LayoutGrid, List, Check, Message
 import { Section, SectionHeader, ProductImage, Badge, EmptyState, useScrollReveal } from '../components/ui';
 import { ProductGridCard, ProductListCard } from '../components/ProductCard';
 import { VoiceSearchButton } from '../components/VoiceSearchButton';
-import { getProductEnquiryUrl } from '../data';
+import { getProductEnquiryUrl, products as initialStaticProducts } from '../data';
 import { usePublicStore } from '../data/publicStore';
 import { getPublishedProductsPaginated } from '../services/productService';
 import { trackSearchQuery } from '../services/analyticsService';
@@ -26,15 +26,20 @@ const Products = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
-  // Pagination State
-  const [products, setProducts] = useState<Product[]>([]);
+  // Helper to get instant matching products
+  const getStaticFiltered = (cat: string) => {
+    return (initialStaticProducts.filter(
+      p => !cat || p.categorySlug === cat || p.category.toLowerCase().includes(cat.toLowerCase())
+    ) as unknown) as Product[];
+  };
+
+  // Instant initial products state (0ms wait)
+  const [products, setProducts] = useState<Product[]>(() => getStaticFiltered(initialCategory));
   const [lastDoc, setLastDoc] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const headerRef = useScrollReveal<HTMLDivElement>();
-  const gridRef = useScrollReveal<HTMLDivElement>();
 
   // Update URL params when filters change
   useEffect(() => {
@@ -48,28 +53,32 @@ const Products = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-    }, 500);
+    }, 300);
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  // Fetch initial products when category changes
+  // Fetch initial products when category changes (Instant SWR pattern)
   useEffect(() => {
     let mounted = true;
+    
+    // Instantly update with static products so user sees 0ms blank state
+    const staticProds = getStaticFiltered(selectedCategory);
+    if (staticProds.length > 0) {
+      setProducts(staticProds);
+    }
+
     const fetchInitial = async () => {
-      setLoading(true);
       try {
         const { products: fetchedProducts, lastDoc: newLastDoc, hasMore: newHasMore } = 
           await getPublishedProductsPaginated(null, selectedCategory, '', 48);
         
-        if (mounted) {
+        if (mounted && fetchedProducts && fetchedProducts.length > 0) {
           setProducts(fetchedProducts as Product[]);
           setLastDoc(newLastDoc);
           setHasMore(newHasMore);
-          setLoading(false);
         }
       } catch (err) {
         console.error('Failed to load products:', err);
-        if (mounted) setLoading(false);
       }
     };
 
@@ -303,32 +312,29 @@ const Products = () => {
         </div>
       )}
 
-      {/* PRODUCTS DISPLAY GRID / LIST */}
-      <Section className="!pt-6">
-        <div ref={gridRef}>
-          {loading ? (
-             <div className="flex flex-col items-center justify-center py-24">
-               <Loader2 className="w-10 h-10 text-volt animate-spin mb-4" />
-               <p className="text-slate-400">Loading catalogue...</p>
-             </div>
-          ) : filteredProducts.length > 0 ? (
+      {/* PRODUCTS DISPLAY GRID / LIST — No reveal animation wrapper to avoid mobile lazy-load deadlock */}
+      <section className="section-padding !pt-6" style={{ opacity: 1, transform: 'none' }}>
+        <div className="max-w-7xl mx-auto">
+          {filteredProducts.length > 0 ? (
             <>
               {viewMode === 'grid' ? (
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-6">
-                  {filteredProducts.map((product) => (
+                  {filteredProducts.map((product, idx) => (
                     <ProductGridCard 
-                      key={product.id} 
+                      key={product.id || product.slug} 
                       product={product as any} 
+                      priority={idx < 8}
                       onQuickView={(p) => setQuickViewProduct(p as any)} 
                     />
                   ))}
                 </div>
               ) : (
                 <div className="flex flex-col gap-3.5 max-w-6xl w-full mx-auto">
-                  {filteredProducts.map((product) => (
+                  {filteredProducts.map((product, idx) => (
                     <ProductListCard 
-                      key={product.id} 
+                      key={product.id || product.slug} 
                       product={product as any} 
+                      priority={idx < 4}
                       onQuickView={(p) => setQuickViewProduct(p as any)} 
                     />
                   ))}
@@ -359,7 +365,7 @@ const Products = () => {
             />
           )}
         </div>
-      </Section>
+      </section>
 
       {/* MOBILE BOTTOM SHEET FILTER MODAL */}
       {isMobileFilterOpen && (

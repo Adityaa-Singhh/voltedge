@@ -203,6 +203,7 @@ export default function ProductDetail() {
                   src={product.images[activeImage]} 
                   alt={product.name} 
                   size="lg" 
+                  priority={true}
                   className="rounded-xl w-full object-contain max-h-[500px]"
                 />
               </div>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sai-enterprises-pwa-v1';
+const CACHE_NAME = 'sai-enterprises-v3-mobile-sync';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -11,32 +11,45 @@ const STATIC_ASSETS = [
   '/site.webmanifest'
 ];
 
-// Install: Cache essential shell
+// Install: Cache essential shell & force immediate activation
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// Activate: Clean up stale caches
+// Activate: Immediately purge all old caches & claim clients
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('[SW] Purging old cache:', key);
+            return caches.delete(key);
+          }
+        })
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Fetch: Stale-while-revalidate for static assets, network-first for pages
+// Message listener to trigger immediate updates
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Fetch handler
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET, API calls, or chrome-extension URLs
+  // Skip non-GET requests
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
@@ -46,18 +59,21 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('firestore.googleapis.com') ||
     url.hostname.includes('identitytoolkit.googleapis.com') ||
     url.hostname.includes('google-analytics.com') ||
-    url.hostname.includes('firebaseio.com')
+    url.hostname.includes('firebaseio.com') ||
+    url.hostname.includes('firebasestorage.googleapis.com')
   ) {
     return;
   }
 
-  // Navigation requests: Network first with cache fallback
+  // Navigation requests: Network First, fallback to cache
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return response;
         })
         .catch(async () => {
@@ -69,12 +85,31 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static Assets & Images: Stale-While-Revalidate
+  // Local images & assets (/images/**, /assets/**): Network First with Cache Fallback
+  if (url.pathname.startsWith('/images/') || url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          return cached || Response.error();
+        })
+    );
+    return;
+  }
+
+  // Other static assets: Stale-While-Revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(request)
         .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
+          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
             const clone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           }

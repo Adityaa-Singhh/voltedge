@@ -93,20 +93,24 @@ export function StarRating({ rating, size = 16, className = '' }: { rating: numb
   );
 }
 
-// ===== Product Placeholder Image =====
+// ===== Rock-Solid Native-Speed Product Image =====
 export function ProductImage({
   src,
   alt,
   className = '',
   size = 'md',
+  priority = false,
 }: {
   src: string;
   alt: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  priority?: boolean;
 }) {
   const [error, setError] = useState(false);
-  const [useOptimized, setUseOptimized] = useState(true);
+  const [loaded, setLoaded] = useState(false);
+  const [inView, setInView] = useState(priority); // priority images are immediately "in view"
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const sizeMap = {
     sm: 'h-32',
@@ -114,39 +118,38 @@ export function ProductImage({
     lg: 'h-64',
   };
 
-  const getOptimizedUrl = (url: string) => {
-    if (!url || !url.includes('firebasestorage.googleapis.com')) return url;
-    try {
-      const urlObj = new URL(url);
-      const path = urlObj.pathname;
-      const lastDotIndex = path.lastIndexOf('.');
-      if (lastDotIndex === -1) return url;
-      
-      const dimensionMap = {
-        sm: '400x400',
-        md: '800x800',
-        lg: '1200x1200'
-      };
-      
-      const suffix = `_${dimensionMap[size]}`;
-      const optimizedPath = path.substring(0, lastDotIndex) + suffix + path.substring(lastDotIndex);
-      urlObj.pathname = optimizedPath;
-      return urlObj.toString();
-    } catch (e) {
-      return url;
-    }
-  };
+  // Manual IntersectionObserver for reliable mobile lazy loading
+  // This is more reliable than native loading="lazy" which fails when
+  // ancestor elements have opacity:0 (scroll-reveal, animations, etc.)
+  useEffect(() => {
+    if (priority || inView) return; // Already visible or priority
+    const el = imgRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px 0px', threshold: 0.01 } // Start loading 200px before entering viewport
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [priority, inView]);
 
   if (error || !src) {
     return (
       <div
-        className={`${sizeMap[size]} w-full flex items-center justify-center bg-gradient-to-br from-dark-2 to-dark-3 ${className}`}
+        className={`w-full h-full min-h-[120px] flex items-center justify-center bg-gradient-to-br from-dark-2 to-dark-3 ${sizeMap[size]} ${className}`}
       >
-        <div className="text-center">
-          <div className="w-12 h-12 mx-auto mb-2 rounded-xl bg-white/5 flex items-center justify-center">
+        <div className="text-center p-2">
+          <div className="w-10 h-10 mx-auto mb-1.5 rounded-xl bg-white/5 flex items-center justify-center">
             <svg
-              width="24"
-              height="24"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -158,28 +161,24 @@ export function ProductImage({
               <polyline points="21 15 16 10 5 21" />
             </svg>
           </div>
-          <span className="text-[10px] text-white/20 font-medium">{alt}</span>
+          <span className="text-[10px] text-white/30 font-medium px-2 block truncate max-w-[140px]">{alt}</span>
         </div>
       </div>
     );
   }
 
-  const currentSrc = useOptimized ? getOptimizedUrl(src) : src;
-
   return (
     <img
-      src={currentSrc}
+      ref={imgRef}
+      src={inView ? src : undefined}
+      data-src={src}
       alt={alt}
-      className={`${sizeMap[size]} w-full object-cover ${className}`}
-      onError={() => {
-        if (useOptimized) {
-          setUseOptimized(false);
-        } else {
-          setError(true);
-        }
-      }}
-      loading="lazy"
+      className={`w-full h-full object-contain transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'} ${className}`}
+      onLoad={() => setLoaded(true)}
+      onError={() => setError(true)}
       decoding="async"
+      // @ts-ignore
+      fetchpriority={priority ? 'high' : 'auto'}
     />
   );
 }

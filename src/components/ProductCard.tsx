@@ -25,17 +25,19 @@ export interface Product {
 export interface GridCardProps {
   product: Product;
   onQuickView?: (p: Product) => void;
+  priority?: boolean;
 }
 
 export interface ListCardProps {
   product: Product;
   onQuickView?: (p: Product) => void;
+  priority?: boolean;
 }
 
 // ==========================================
 // 1. PRODUCT GRID CARD (2-Col Mobile, Enhanced Desktop)
 // ==========================================
-export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView }) => {
+export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView, priority = false }) => {
   const { items, addItem } = useBOM();
   const [added, setAdded] = useState(false);
 
@@ -59,11 +61,12 @@ export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView 
         : 'border-white/10 hover:border-volt/40 hover:shadow-[0_12px_28px_rgba(0,0,0,0.5),0_0_20px_rgba(0,229,255,0.08)]'
     }`}>
       {/* IMAGE AREA (Mobile: 130px, Desktop: 176px - 10-15% larger) */}
-      <div className="h-[130px] sm:h-36 lg:h-44 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950">
+      <div className="h-[130px] sm:h-36 lg:h-44 relative overflow-hidden bg-gradient-to-br from-slate-800 to-slate-950 flex items-center justify-center">
         <ProductImage
           src={product.images && product.images.length > 0 ? product.images[0] : ''}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          priority={priority}
+          className="w-full h-full object-contain p-2 transition-transform duration-700 group-hover:scale-110"
         />
 
         {/* Badges (Top-Left, Stacked 8px gap) */}
@@ -208,7 +211,7 @@ export const ProductGridCard: React.FC<GridCardProps> = ({ product, onQuickView 
 // ==========================================
 // 2. PRODUCT LIST CARD (Enterprise Modern Layout)
 // ==========================================
-export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView }) => {
+export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView, priority = false }) => {
   const { items, addItem } = useBOM();
   const [added, setAdded] = useState(false);
 
@@ -232,11 +235,12 @@ export const ProductListCard: React.FC<ListCardProps> = ({ product, onQuickView 
     <div className="scout-shimmer-card w-full bg-dark-2/90 hover:bg-dark-2 border border-white/10 hover:border-volt/40 hover:shadow-[0_12px_32px_rgba(0,0,0,0.5),0_0_24px_rgba(0,229,255,0.06)] rounded-2xl p-3 sm:p-4 lg:p-5 transition-all duration-300 flex flex-col md:flex-row gap-4 lg:gap-6 items-stretch group relative">
       
       {/* 1. VISUAL SHOWCASE (Mobile: 110px thumb, Desktop: 240px-288px wide aspect ratio - 15% increase) */}
-      <div className="w-full sm:w-40 md:w-60 lg:w-72 h-36 sm:h-40 md:h-48 lg:h-52 rounded-xl overflow-hidden relative shrink-0 bg-gradient-to-br from-slate-800 to-slate-950 border border-white/5">
+      <div className="w-full sm:w-40 md:w-60 lg:w-72 h-36 sm:h-40 md:h-48 lg:h-52 rounded-xl overflow-hidden relative shrink-0 bg-gradient-to-br from-slate-800 to-slate-950 border border-white/5 flex items-center justify-center">
         <ProductImage
           src={product.images && product.images.length > 0 ? product.images[0] : ''}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          priority={priority}
+          className="w-full h-full object-contain p-2 transition-transform duration-700 group-hover:scale-105"
         />
 
         {/* Badges (Top-Left) */}
